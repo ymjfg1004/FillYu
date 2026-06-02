@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Custom Text Filler — 관리자</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fa;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+
+/* Header */
+.hd{height:56px;background:#fff;border-bottom:1px solid #e8eaed;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hd-logo{font-size:15px;font-weight:800;color:#18a0fb;letter-spacing:-.3px}
+.hd-title{font-size:14px;font-weight:600;flex:1;color:#333}
+.hd-status{font-size:12px;padding:3px 8px;border-radius:10px;background:#f0f0f0;color:#888}
+.hd-status.ok{background:#e6f7ee;color:#1a7a45}
+.hd-status.err{background:#fff0f0;color:#c0392b}
+.btn{padding:7px 14px;border:1px solid #e0e0e0;border-radius:6px;background:#f5f5f5;font-size:13px;cursor:pointer;font-weight:500;transition:all .15s}
+.btn:hover{background:#eaeaea}
+.btn.primary{background:#18a0fb;border-color:#18a0fb;color:#fff}
+.btn.primary:hover{background:#0d8de8}
+.btn.danger{color:#e53935;border-color:#fcc}
+.btn.danger:hover{background:#fff0f0}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Layout */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sb{width:220px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-tabs{display:flex;border-bottom:1px solid #eee;padding:0 6px;flex-shrink:0}
+.sb-tab{flex:1;padding:9px 4px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;color:#aaa;border-bottom:2px solid transparent}
+.sb-tab.on{color:#18a0fb;border-bottom-color:#18a0fb;font-weight:700}
+.sb-scroll{flex:1;overflow-y:auto;padding:8px 0}
+.sb-add{padding:8px;border-top:1px solid #f0f0f0;flex-shrink:0}
+
+/* Tree */
+.tree-g{margin-bottom:2px}
+.tree-g-hd{display:flex;align-items:center;padding:5px 8px 5px 10px;cursor:pointer;gap:4px}
+.tree-g-hd:hover{background:#f5f5f5;border-radius:5px}
+.tree-arrow{font-size:10px;color:#ccc;width:12px;transition:transform .15s}
+.tree-arrow.open{transform:rotate(90deg)}
+.tree-g-name{font-size:12px;font-weight:600;color:#666;flex:1}
+.tree-g-del{opacity:0;font-size:14px;color:#ccc;cursor:pointer;padding:0 2px;border:none;background:none;line-height:1}
+.tree-g-hd:hover .tree-g-del{opacity:1}
+.tree-g-del:hover{color:#e53935}
+.tree-subs{padding-left:8px}
+.tree-sub{display:flex;align-items:center;padding:5px 8px 5px 12px;cursor:pointer;border-radius:5px;border-left:2px solid transparent;gap:4px}
+.tree-sub:hover{background:#f5f8ff}
+.tree-sub.on{background:#eef7ff;border-left-color:#18a0fb}
+.tree-sub-name{font-size:13px;color:#444;flex:1}
+.tree-sub.on .tree-sub-name{color:#18a0fb;font-weight:600}
+.tree-sub-del{opacity:0;font-size:14px;color:#ccc;cursor:pointer;border:none;background:none;line-height:1}
+.tree-sub:hover .tree-sub-del{opacity:1}
+.tree-sub-del:hover{color:#e53935}
+
+/* Number/Date list in sidebar */
+.sb-item{display:flex;align-items:center;padding:6px 10px;cursor:pointer;border-radius:5px;margin:0 4px;border-left:2px solid transparent;gap:4px}
+.sb-item:hover{background:#f5f8ff}
+.sb-item.on{background:#eef7ff;border-left-color:#18a0fb}
+.sb-item-name{font-size:13px;color:#444;flex:1}
+.sb-item.on .sb-item-name{color:#18a0fb;font-weight:600}
+.sb-g-label{font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;padding:8px 12px 3px;letter-spacing:.4px}
+
+/* Main */
+.main{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.main-empty{display:flex;align-items:center;justify-content:center;height:200px;color:#bbb;font-size:14px}
+
+/* Panel */
+.panel{background:#fff;border-radius:10px;border:1px solid #e8eaed;overflow:hidden}
+.panel-hd{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+.panel-title{font-size:15px;font-weight:700;flex:1}
+.panel-sub{font-size:12px;color:#999}
+.panel-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+
+/* Field row */
+.field-row{border:1px solid #eee;border-radius:8px;overflow:hidden}
+.field-hd{display:flex;align-items:center;padding:10px 14px;background:#fafafa;gap:10px;cursor:pointer}
+.field-hd:hover{background:#f5f5f5}
+.field-tag{font-size:12px;font-weight:700;color:#18a0fb}
+.field-lbl{font-size:13px;font-weight:600;color:#333;flex:1}
+.field-cnt{font-size:11px;color:#bbb}
+.field-body{padding:12px 14px;border-top:1px solid #f0f0f0;display:none}
+.field-body.open{display:block}
+.field-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+label.lbl{font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px}
+input.inp,textarea.ta{width:100%;padding:7px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+input.inp:focus,textarea.ta:focus{border-color:#18a0fb}
+textarea.ta{resize:vertical;min-height:80px;line-height:1.6}
+.inp-row{display:flex;gap:8px}
+.inp-row>*{flex:1}
+.hint{font-size:11px;color:#bbb;margin-top:3px}
+
+/* Number/Date editor */
+.num-editor{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.num-editor .full{grid-column:1/-1}
+.date-editor{display:flex;flex-direction:column;gap:10px}
+
+/* Add field */
+.add-field-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed #d0d0d0;border-radius:8px;color:#aaa;font-size:13px;cursor:pointer;transition:all .15s;background:none;width:100%}
+.add-field-btn:hover{border-color:#18a0fb;color:#18a0fb;background:#f5fbff}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:420px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:700}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;padding-top:4px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+
+/* Inline add */
+.inline-add{display:flex;gap:6px;padding:4px 8px}
+.inline-add input{flex:1;padding:5px 8px;border:1px solid #e0e0e0;border-radius:5px;font-size:12px;outline:none}
+.inline-add input:focus{border-color:#18a0fb}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hd">
+  <div class="hd-logo">✦</div>
+  <div class="hd-title">Custom Text Filler 관리자</div>
+  <div class="hd-status" id="ghStatus">GitHub 미연결</div>
+  <button class="btn" onclick="openSettings()">⚙ 설정</button>
+  <button class="btn primary" id="saveBtn" onclick="saveToGitHub()" disabled>저장하기</button>
+</div>
+
+<!-- Body -->
+<div class="body">
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="sb-tabs">
+      <div class="sb-tab on" onclick="switchSbTab('text',this)">텍스트</div>
+      <div class="sb-tab" onclick="switchSbTab('number',this)">숫자</div>
+      <div class="sb-tab" onclick="switchSbTab('date',this)">날짜</div>
+    </div>
+    <div class="sb-scroll" id="sbScroll"></div>
+    <div class="sb-add" id="sbAdd"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main" id="main">
+    <div class="main-empty">← GitHub에 연결하거나 데이터를 불러오세요</div>
+  </div>
+</div>
+
+<!-- GitHub 설정 Modal -->
+<div class="overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">⚙ GitHub 설정</div>
+    <div>
+      <label class="lbl">Personal Access Token <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" style="font-size:11px;color:#18a0fb">(생성하기)</a></label>
+      <input class="inp" type="password" id="ghToken" placeholder="ghp_xxxxxxxx"/>
+      <div class="hint">repo 권한이 필요합니다</div>
+    </div>
+    <div>
+      <label class="lbl">저장소 (owner/repo)</label>
+      <input class="inp" id="ghRepo" placeholder="username/repo-name"/>
+    </div>
+    <div>
+      <label class="lbl">브랜치</label>
+      <input class="inp" id="ghBranch" value="main" placeholder="main"/>
+    </div>
+    <div>
+      <label class="lbl">데이터 파일 경로</label>
+      <input class="inp" id="ghPath" value="data/plugin-data.json"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('settingsModal')">취소</button>
+      <button class="btn primary" onclick="connectGitHub()">연결 및 불러오기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 그룹 추가 Modal -->
+<div class="overlay" id="addGroupModal">
+  <div class="modal">
+    <div class="modal-title">그룹 추가</div>
+    <div>
+      <label class="lbl">그룹 이름</label>
+      <input class="inp" id="newGroupName" placeholder="예: 의료/헬스"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addGroupModal')">취소</button>
+      <button class="btn primary" onclick="confirmAddGroup()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 서브카테고리 추가 Modal -->
+<div class="overlay" id="addSubModal">
+  <div class="modal">
+    <div class="modal-title">서브카테고리 추가</div>
+    <div>
+      <label class="lbl">그룹</label>
+      <select class="inp" id="addSubGroup"></select>
+    </div>
+    <div>
+      <label class="lbl">카테고리 이름</label>
+      <input class="inp" id="newSubName" placeholder="예: 병원 정보"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addSubModal')">취소</button>
+      <button class="btn primary" onclick="confirmAddSub()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+let cfg = JSON.parse(localStorage.getItem('ghCfg') || '{}');
+let data = null; // plugin-data.json contents
+let fileSha = '';
+let sbTab = 'text';
+let selection = null; // { type, groupKey, subKey } or { type, groupKey, itemIdx }
+let dirty = false;
+let expandedGroups = {};
+
+// ─── Init ─────────────────────────────────────────────────
+window.onload = () => {
+  if (cfg.token && cfg.repo) {
+    document.getElementById('ghToken').value = cfg.token;
+    document.getElementById('ghRepo').value = cfg.repo;
+    document.getElementById('ghBranch').value = cfg.branch || 'main';
+    document.getElementById('ghPath').value = cfg.path || 'data/plugin-data.json';
+    loadFromGitHub();
+  }
+};
+
+// ─── GitHub API ───────────────────────────────────────────
+async function ghFetch(url, opts = {}) {
+  const res = await fetch('https://api.github.com' + url, {
+    ...opts,
+    headers: {
+      Authorization: 'Bearer ' + cfg.token,
+      'Content-Type': 'application/json',
+      Accept: 'application/vnd.github+json',
+      ...(opts.headers || {})
+    }
+  });
+  return res;
+}
+
+async function loadFromGitHub() {
+  const [owner, repo] = (cfg.repo || '').split('/');
+  const branch = cfg.branch || 'main';
+  const path = cfg.path || 'data/plugin-data.json';
+  if (!owner || !repo || !cfg.token) return;
+
+  setStatus('불러오는 중...', '');
+  try {
+    const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
+    if (!res.ok) throw new Error('파일을 찾을 수 없습니다 (' + res.status + ')');
+    const json = await res.json();
+    fileSha = json.sha;
+    data = JSON.parse(atob(json.content.replace(/\n/g, '')));
+    setStatus('연결됨 ✓', 'ok');
+    document.getElementById('saveBtn').disabled = false;
+    selection = null;
+    renderSidebar();
+    renderMain();
+    toast('데이터를 불러왔습니다.');
+  } catch (e) {
+    setStatus('연결 실패', 'err');
+    toast('오류: ' + e.message);
+  }
+}
+
+async function saveToGitHub() {
+  const [owner, repo] = (cfg.repo || '').split('/');
+  const branch = cfg.branch || 'main';
+  const path = cfg.path || 'data/plugin-data.json';
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message: 'Update plugin-data.json via admin',
+        content,
+        sha: fileSha,
+        branch
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message);
+    }
+    const json = await res.json();
+    fileSha = json.content.sha;
+    dirty = false;
+    toast('GitHub에 저장했습니다 ✓');
+  } catch (e) {
+    toast('저장 실패: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '저장하기';
+  }
+}
+
+// ─── Settings ─────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('ghToken').value = cfg.token || '';
+  document.getElementById('ghRepo').value = cfg.repo || '';
+  document.getElementById('ghBranch').value = cfg.branch || 'main';
+  document.getElementById('ghPath').value = cfg.path || 'data/plugin-data.json';
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+function connectGitHub() {
+  cfg = {
+    token: document.getElementById('ghToken').value.trim(),
+    repo: document.getElementById('ghRepo').value.trim(),
+    branch: document.getElementById('ghBranch').value.trim() || 'main',
+    path: document.getElementById('ghPath').value.trim() || 'data/plugin-data.json'
+  };
+  localStorage.setItem('ghCfg', JSON.stringify(cfg));
+  closeModal('settingsModal');
+  loadFromGitHub();
+}
+
+// ─── Sidebar ──────────────────────────────────────────────
+function switchSbTab(t, el) {
+  sbTab = t;
+  document.querySelectorAll('.sb-tab').forEach(e => e.classList.remove('on'));
+  el.classList.add('on');
+  selection = null;
+  renderSidebar();
+  renderMain();
+}
+
+function renderSidebar() {
+  const scroll = document.getElementById('sbScroll');
+  const addBar = document.getElementById('sbAdd');
+  if (!data) { scroll.innerHTML = ''; addBar.innerHTML = ''; return; }
+
+  if (sbTab === 'text') {
+    let html = '';
+    data.text.forEach(g => {
+      const open = expandedGroups[g.key] !== false;
+      html += `<div class="tree-g">
+        <div class="tree-g-hd" onclick="toggleGroup('${g.key}')">
+          <span class="tree-arrow${open?' open':''}">▶</span>
+          <span class="tree-g-name">${g.g}</span>
+          <button class="tree-g-del" onclick="event.stopPropagation();delGroup('${g.key}')" title="그룹 삭제">×</button>
+        </div>`;
+      if (open) {
+        html += `<div class="tree-subs">`;
+        g.subs.forEach(s => {
+          const on = selection && selection.subKey === s.key ? ' on' : '';
+          html += `<div class="tree-sub${on}" onclick="selectSub('${g.key}','${s.key}')">
+            <span class="tree-sub-name">${s.name}</span>
+            <button class="tree-sub-del" onclick="event.stopPropagation();delSub('${g.key}','${s.key}')" title="삭제">×</button>
+          </div>`;
+        });
+        html += `<div class="inline-add" id="inlineAdd_${g.key}">
+          <input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline('${g.key}',this.value,this)"/>
+          <button class="btn sm" onclick="addSubInline('${g.key}',this.previousElementSibling.value,this.previousElementSibling)">+</button>
+        </div>`;
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    scroll.innerHTML = html;
+    addBar.innerHTML = `<button class="btn" style="width:100%;font-size:12px" onclick="openAddGroup()">+ 그룹 추가</button>`;
+
+  } else if (sbTab === 'number') {
+    let html = '';
+    data.number.forEach((g, gi) => {
+      html += `<div class="sb-g-label">${g.g}</div>`;
+      g.items.forEach((item, ii) => {
+        const on = selection && selection.groupKey === g.key && selection.itemIdx === ii ? ' on' : '';
+        html += `<div class="sb-item${on}" onclick="selectNumItem('${g.key}',${ii})">
+          <span class="sb-item-name">${item.lbl}</span>
+        </div>`;
+      });
+    });
+    scroll.innerHTML = html;
+    addBar.innerHTML = '';
+
+  } else if (sbTab === 'date') {
+    let html = '';
+    data.date.forEach((g, gi) => {
+      html += `<div class="sb-g-label">${g.g}</div>`;
+      g.items.forEach((item, ii) => {
+        const on = selection && selection.groupKey === g.key && selection.itemIdx === ii ? ' on' : '';
+        html += `<div class="sb-item${on}" onclick="selectDateItem('${g.key}',${ii})">
+          <span class="sb-item-name">${item.lbl}</span>
+        </div>`;
+      });
+    });
+    scroll.innerHTML = html;
+    addBar.innerHTML = '';
+  }
+}
+
+function toggleGroup(key) {
+  expandedGroups[key] = expandedGroups[key] === false ? true : false;
+  renderSidebar();
+}
+
+function selectSub(gKey, sKey) {
+  selection = { type: 'text', groupKey: gKey, subKey: sKey };
+  renderSidebar();
+  renderMain();
+}
+
+function selectNumItem(gKey, idx) {
+  selection = { type: 'number', groupKey: gKey, itemIdx: idx };
+  renderSidebar();
+  renderMain();
+}
+
+function selectDateItem(gKey, idx) {
+  selection = { type: 'date', groupKey: gKey, itemIdx: idx };
+  renderSidebar();
+  renderMain();
+}
+
+// ─── Main Content ─────────────────────────────────────────
+function renderMain() {
+  const main = document.getElementById('main');
+  if (!data || !selection) {
+    main.innerHTML = '<div class="main-empty">← 왼쪽에서 항목을 선택하세요</div>';
+    return;
+  }
+
+  if (selection.type === 'text') {
+    const g = data.text.find(x => x.key === selection.groupKey);
+    const sub = g && g.subs.find(s => s.key === selection.subKey);
+    if (!sub) { main.innerHTML = '<div class="main-empty">항목을 찾을 수 없습니다</div>'; return; }
+
+    let fieldsHtml = sub.fields.map((f, fi) => `
+      <div class="field-row" id="field_${fi}">
+        <div class="field-hd" onclick="toggleField(${fi})">
+          <span class="field-tag">#</span>
+          <span class="field-lbl">${f.lbl}</span>
+          <span class="field-cnt">${f.v.length}개</span>
+          <button class="btn sm danger" onclick="event.stopPropagation();delField(${fi})" style="margin-left:8px">삭제</button>
+        </div>
+        <div class="field-body" id="fb_${fi}">
+          <label class="lbl">레이블 / ID</label>
+          <div class="inp-row">
+            <input class="inp" value="${esc(f.lbl)}" onchange="updateField(${fi},'lbl',this.value)" placeholder="레이블"/>
+            <input class="inp" value="${esc(f.id)}" onchange="updateField(${fi},'id',this.value)" placeholder="ID (영문)"/>
+          </div>
+          <label class="lbl" style="margin-top:10px">값 목록 <span style="font-weight:400;color:#bbb">(한 줄에 하나씩)</span></label>
+          <textarea class="ta" rows="6" onchange="updateField(${fi},'v',this.value)">${f.v.join('\n')}</textarea>
+          <div class="hint">${f.v.length}개 값</div>
+        </div>
+      </div>`).join('');
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-hd">
+          <div>
+            <div class="panel-title">${g.g} / ${sub.name}</div>
+            <div class="panel-sub">필드를 클릭하면 편집할 수 있습니다</div>
+          </div>
+          <button class="btn sm" onclick="renameSub()">이름 수정</button>
+        </div>
+        <div class="panel-body">
+          ${fieldsHtml}
+          <button class="add-field-btn" onclick="addField()">+ 필드 추가</button>
+        </div>
+      </div>`;
+
+  } else if (selection.type === 'number') {
+    const g = data.number.find(x => x.key === selection.groupKey);
+    const item = g && g.items[selection.itemIdx];
+    if (!item) return;
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="panel-title">${g.g} — ${item.lbl}</div>
+        </div>
+        <div class="panel-body">
+          <div class="num-editor">
+            <div>
+              <label class="lbl">레이블</label>
+              <input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('lbl',this.value)"/>
+            </div>
+            <div>
+              <label class="lbl">미리보기 텍스트</label>
+              <input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('fmt',this.value)"/>
+            </div>
+            <div>
+              <label class="lbl">최솟값</label>
+              <input class="inp" type="number" value="${item.min}" onchange="updateNumItem('min',parseFloat(this.value))"/>
+            </div>
+            <div>
+              <label class="lbl">최댓값</label>
+              <input class="inp" type="number" value="${item.max}" onchange="updateNumItem('max',parseFloat(this.value))"/>
+            </div>
+            <div>
+              <label class="lbl">소수점 자리수</label>
+              <input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('dec',parseInt(this.value))"/>
+            </div>
+            <div>
+              <label class="lbl">단위 (접미사)</label>
+              <input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('suffix',this.value)" placeholder="예: 원, kg, %"/>
+            </div>
+            <div class="full">
+              <label class="lbl">천 단위 콤마 표시</label>
+              <select class="inp" onchange="updateNumItem('thousands',this.value==='true')">
+                <option value="false"${!item.thousands?' selected':''}>없음</option>
+                <option value="true"${item.thousands?' selected':''}>있음 (1,000)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (selection.type === 'date') {
+    const g = data.date.find(x => x.key === selection.groupKey);
+    const item = g && g.items[selection.itemIdx];
+    if (!item) return;
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="panel-title">${g.g} — ${item.lbl}</div>
+        </div>
+        <div class="panel-body">
+          <div class="date-editor">
+            <div>
+              <label class="lbl">레이블</label>
+              <input class="inp" value="${esc(item.lbl)}" onchange="updateDateItem('lbl',this.value)"/>
+            </div>
+            <div>
+              <label class="lbl">미리보기 텍스트</label>
+              <input class="inp" value="${esc(item.fmt)}" onchange="updateDateItem('fmt',this.value)"/>
+            </div>
+            <div>
+              <label class="lbl">패턴</label>
+              <input class="inp" value="${esc(item.pattern)}" onchange="updateDateItem('pattern',this.value)" placeholder="예: YYYY-MM-DD"/>
+              <div class="hint">사용 가능: YYYY YY MM M DD D HH mm SS AP hh DAY_KO DAY_SHORT DAY_EN</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
+// ─── Text CRUD ────────────────────────────────────────────
+function toggleField(fi) {
+  const fb = document.getElementById('fb_' + fi);
+  if (fb) fb.classList.toggle('open');
+}
+
+function updateField(fi, key, val) {
+  const g = data.text.find(x => x.key === selection.groupKey);
+  const sub = g && g.subs.find(s => s.key === selection.subKey);
+  if (!sub) return;
+  if (key === 'v') sub.fields[fi].v = val.split('\n').map(s => s.trim()).filter(s => s);
+  else sub.fields[fi][key] = val;
+  markDirty();
+  renderSidebar();
+}
+
+function delField(fi) {
+  if (!confirm('이 필드를 삭제하시겠습니까?')) return;
+  const g = data.text.find(x => x.key === selection.groupKey);
+  const sub = g && g.subs.find(s => s.key === selection.subKey);
+  if (!sub) return;
+  sub.fields.splice(fi, 1);
+  markDirty();
+  renderMain();
+}
+
+function addField() {
+  const g = data.text.find(x => x.key === selection.groupKey);
+  const sub = g && g.subs.find(s => s.key === selection.subKey);
+  if (!sub) return;
+  const lbl = prompt('필드 레이블을 입력하세요:');
+  if (!lbl) return;
+  const id = lbl.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  sub.fields.push({ id: id || 'field_' + Date.now(), lbl, v: ['값1', '값2', '값3'] });
+  markDirty();
+  renderMain();
+}
+
+function renameSub() {
+  const g = data.text.find(x => x.key === selection.groupKey);
+  const sub = g && g.subs.find(s => s.key === selection.subKey);
+  if (!sub) return;
+  const name = prompt('새 이름:', sub.name);
+  if (!name) return;
+  sub.name = name;
+  markDirty();
+  renderSidebar();
+  renderMain();
+}
+
+function delSub(gKey, sKey) {
+  if (!confirm('이 카테고리를 삭제하시겠습니까?')) return;
+  const g = data.text.find(x => x.key === gKey);
+  if (!g) return;
+  g.subs = g.subs.filter(s => s.key !== sKey);
+  if (selection && selection.subKey === sKey) { selection = null; }
+  markDirty();
+  renderSidebar();
+  renderMain();
+}
+
+function delGroup(gKey) {
+  if (!confirm('이 그룹 전체를 삭제하시겠습니까?')) return;
+  data.text = data.text.filter(g => g.key !== gKey);
+  if (selection && selection.groupKey === gKey) selection = null;
+  markDirty();
+  renderSidebar();
+  renderMain();
+}
+
+function openAddGroup() {
+  document.getElementById('newGroupName').value = '';
+  document.getElementById('addGroupModal').classList.add('open');
+}
+
+function confirmAddGroup() {
+  const name = document.getElementById('newGroupName').value.trim();
+  if (!name) return;
+  const key = 'g_' + Date.now();
+  data.text.push({ g: name, key, subs: [] });
+  expandedGroups[key] = true;
+  markDirty();
+  closeModal('addGroupModal');
+  renderSidebar();
+}
+
+function addSubInline(gKey, name, input) {
+  if (!name || !name.trim()) return;
+  const g = data.text.find(x => x.key === gKey);
+  if (!g) return;
+  const key = 's_' + Date.now();
+  g.subs.push({ name: name.trim(), key, fields: [] });
+  input.value = '';
+  markDirty();
+  selection = { type: 'text', groupKey: gKey, subKey: key };
+  renderSidebar();
+  renderMain();
+}
+
+// ─── Number/Date CRUD ─────────────────────────────────────
+function updateNumItem(key, val) {
+  const g = data.number.find(x => x.key === selection.groupKey);
+  if (!g) return;
+  g.items[selection.itemIdx][key] = val;
+  markDirty();
+}
+
+function updateDateItem(key, val) {
+  const g = data.date.find(x => x.key === selection.groupKey);
+  if (!g) return;
+  g.items[selection.itemIdx][key] = val;
+  markDirty();
+}
+
+// ─── Utils ────────────────────────────────────────────────
+function markDirty() {
+  dirty = true;
+  document.getElementById('saveBtn').disabled = false;
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('ghStatus');
+  el.textContent = text;
+  el.className = 'hd-status ' + (cls || '');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
