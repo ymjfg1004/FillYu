@@ -539,6 +539,64 @@ function bindEvents(){
   }
 }
 
+// ─── Remote Data Load ─────────────────────────────────────
+const REMOTE_URL='https://raw.githubusercontent.com/ymjfg1004/FillYu/main/data/plugin-data.json';
+
+async function loadRemoteData(){
+  try{
+    const res=await fetch(REMOTE_URL+'?t='+Date.now());
+    if(!res.ok)return;
+    const d=await res.json();
+    if(d.text&&d.text.length) TEXT.splice(0,TEXT.length,...d.text);
+    if(d.number&&d.number.length){
+      // Rebuild NUM with gen functions from config
+      NUM.length=0;
+      NUM.push({g:'커스텀 숫자',key:'custom',isCustom:true});
+      d.number.forEach(g=>{
+        NUM.push({g:g.g,key:g.key,items:g.items.map(item=>({
+          lbl:item.lbl,fmt:item.fmt,
+          gen:()=>{
+            const n=Math.random()*(item.max-item.min)+item.min;
+            const step=item.step||1;
+            const snapped=Math.round(n/step)*step;
+            let s=snapped.toFixed(item.dec||0);
+            if(item.thousands)s=parseFloat(s).toLocaleString('ko-KR');
+            return s+(item.suffix||'');
+          }
+        }))});
+      });
+    }
+    if(d.date&&d.date.length){
+      DATE.length=0;
+      const DAYS_KO=['일','월','화','수','목','금','토'];
+      const DAYS_EN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      d.date.forEach(g=>{
+        DATE.push({g:g.g,key:g.key,items:g.items.map(item=>({
+          lbl:item.lbl,fmt:item.fmt,
+          gen:()=>{
+            const dt=new Date(Date.now()-Math.random()*1e11);
+            const p=(n)=>String(n).padStart(2,'0');
+            const h=Math.floor(Math.random()*24),m=Math.floor(Math.random()*60),s=Math.floor(Math.random()*60);
+            const pat=item.pattern;
+            if(pat==='DAY_KO')return DAYS_KO[dt.getDay()]+'요일';
+            if(pat==='DAY_SHORT')return DAYS_KO[dt.getDay()];
+            if(pat==='DAY_EN')return DAYS_EN[dt.getDay()];
+            return pat
+              .replace('YYYY',dt.getFullYear())
+              .replace('YY',String(dt.getFullYear()).slice(2))
+              .replace('MM',p(dt.getMonth()+1)).replace('M',dt.getMonth()+1)
+              .replace('DD',p(dt.getDate())).replace('D',dt.getDate())
+              .replace('HH',p(h)).replace('hh',p(h%12||12))
+              .replace('mm',p(m)).replace('SS',p(s))
+              .replace('AP',h<12?'AM':'PM');
+          }
+        }))});
+      });
+    }
+    if(tab==='text'||tab==='number'||tab==='date') render();
+  }catch(e){/* 오프라인이면 빌트인 데이터 사용 */}
+}
+
 // ─── Init ─────────────────────────────────────────────────
 window.onmessage=e=>{
   const msg=e.data.pluginMessage;if(!msg)return;
@@ -547,6 +605,8 @@ window.onmessage=e=>{
 };
 
 parent.postMessage({pluginMessage:{type:'load-lists'}},'*');
+parent.postMessage({pluginMessage:{type:'get-selection'}},'*');
+loadRemoteData();
 parent.postMessage({pluginMessage:{type:'get-selection'}},'*');
 
 // Initial render
