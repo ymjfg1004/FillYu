@@ -272,6 +272,39 @@ async function loadFromGitHub() {
   }
 }
 
+async function doSave(owner, repo, branch, path) {
+  // 항상 최신 SHA 재확인
+  const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
+  if (!checkRes.ok) {
+    const e = await checkRes.json();
+    throw new Error(`파일 조회 실패 (${checkRes.status}): ${e.message}`);
+  }
+  fileSha = (await checkRes.json()).sha;
+
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
+    method: 'PUT',
+    body: JSON.stringify({ message: 'Update plugin-data.json via admin', content, sha: fileSha, branch })
+  });
+
+  if (res.status === 409) {
+    // SHA 충돌 → 한 번 더 재시도
+    const retryCheck = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
+    fileSha = (await retryCheck.json()).sha;
+    const retryRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
+      method: 'PUT',
+      body: JSON.stringify({ message: 'Update plugin-data.json via admin', content, sha: fileSha, branch })
+    });
+    if (!retryRes.ok) { const e = await retryRes.json(); throw new Error(`(${retryRes.status}) ${e.message}`); }
+    fileSha = (await retryRes.json()).content.sha;
+  } else if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`(${res.status}) ${err.message}`);
+  } else {
+    fileSha = (await res.json()).content.sha;
+  }
+}
+
 async function saveToGitHub() {
   const [owner, repo] = (cfg.repo || '').split('/');
   const branch = cfg.branch || 'main';
@@ -280,33 +313,9 @@ async function saveToGitHub() {
   btn.disabled = true;
   btn.textContent = '저장 중...';
   try {
-    // 저장 직전 최신 SHA 재확인
-    const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
-    if (!checkRes.ok) {
-      const e = await checkRes.json();
-      throw new Error(`파일 조회 실패 (${checkRes.status}): ${e.message}`);
-    }
-    const checkJson = await checkRes.json();
-    fileSha = checkJson.sha;
-
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-    const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        message: 'Update plugin-data.json via admin',
-        content,
-        sha: fileSha,
-        branch
-      })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(`(${res.status}) ${err.message}`);
-    }
-    const json = await res.json();
-    fileSha = json.content.sha;
+    await doSave(owner, repo, branch, path);
     dirty = false;
-    toast('GitHub에 저장했습니다 ✓');
+    toast('플러그인에 적용했습니다 ✓');
   } catch (e) {
     toast('저장 실패: ' + e.message);
     console.error(e);
