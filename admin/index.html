@@ -307,6 +307,32 @@ async function doSave(owner, repo, branch, path) {
   }
 }
 
+// 필드 저장 버튼용 - 상단 버튼과 독립
+async function saveField(btnEl) {
+  if (_saving) { toast('저장 중입니다. 잠시 기다려주세요.'); return; }
+  _saving = true;
+  const orig = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = '...';
+  const [owner, repo] = (cfg.repo || '').split('/');
+  const branch = cfg.branch || 'main';
+  const path = cfg.path || 'data/plugin-data.json';
+  try {
+    await doSave(owner, repo, branch, path);
+    dirty = false;
+    btnEl.textContent = '✓';
+    setTimeout(() => { btnEl.textContent = orig; btnEl.disabled = false; }, 1500);
+    toast('저장 완료 ✓');
+  } catch (e) {
+    toast('저장 실패: ' + e.message);
+    btnEl.textContent = orig;
+    btnEl.disabled = false;
+  } finally {
+    _saving = false;
+  }
+}
+
+// 상단 플러그인 적용 버튼용
 async function saveToGitHub() {
   if (_saving) { toast('저장 중입니다. 잠시 기다려주세요.'); return; }
   _saving = true;
@@ -315,18 +341,18 @@ async function saveToGitHub() {
   const path = cfg.path || 'data/plugin-data.json';
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
-  btn.textContent = '저장 중...';
+  btn.textContent = '적용 중...';
   try {
     await doSave(owner, repo, branch, path);
     dirty = false;
-    toast('저장 완료 ✓');
+    toast('플러그인에 적용됐습니다 ✓');
   } catch (e) {
     toast('저장 실패: ' + e.message);
     console.error(e);
   } finally {
     _saving = false;
     btn.disabled = false;
-    btn.textContent = '저장하기';
+    btn.textContent = '🔌 플러그인 적용';
   }
 }
 
@@ -480,7 +506,7 @@ function renderMain() {
           <textarea class="ta" rows="6" onchange="updateField(${fi},'v',this.value)">${f.v.join('\n')}</textarea>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
             <div class="hint">${f.v.length}개 값</div>
-            <button class="btn sm primary" onclick="saveToGitHub()">저장</button>
+            <button class="btn sm primary" onclick="saveField(this)">저장</button>
           </div>
         </div>
       </div>`).join('');
