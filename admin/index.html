@@ -259,7 +259,7 @@ async function loadFromGitHub() {
     if (!res.ok) throw new Error('파일을 찾을 수 없습니다 (' + res.status + ')');
     const json = await res.json();
     fileSha = json.sha;
-    data = JSON.parse(atob(json.content.replace(/\n/g, '')));
+    data = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g, '')))));
     setStatus('연결됨 ✓', 'ok');
     document.getElementById('saveBtn').disabled = false;
     selection = null;
