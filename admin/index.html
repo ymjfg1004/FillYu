@@ -464,7 +464,10 @@ function renderMain() {
           </div>
           <label class="lbl" style="margin-top:10px">값 목록 <span style="font-weight:400;color:#bbb">(한 줄에 하나씩)</span></label>
           <textarea class="ta" rows="6" onchange="updateField(${fi},'v',this.value)">${f.v.join('\n')}</textarea>
-          <div class="hint">${f.v.length}개 값</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+            <div class="hint">${f.v.length}개 값</div>
+            <button class="btn sm primary" onclick="saveToGitHub()">저장</button>
+          </div>
         </div>
       </div>`).join('');
 
