@@ -592,12 +592,23 @@ function addField() {
   const g = data.text.find(x => x.key === selection.groupKey);
   const sub = g && g.subs.find(s => s.key === selection.subKey);
   if (!sub) return;
-  const lbl = prompt('필드 레이블을 입력하세요:');
-  if (!lbl) return;
-  const id = lbl.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-  sub.fields.push({ id: id || 'field_' + Date.now(), lbl, v: ['값1', '값2', '값3'] });
+  const newId = 'field_' + Date.now();
+  sub.fields.push({ id: newId, lbl: '', v: [] });
   markDirty();
   renderMain();
+  // 새 필드를 자동으로 펼치고 레이블 입력 포커스
+  const fi = sub.fields.length - 1;
+  const fb = document.getElementById('fb_' + fi);
+  if (fb) {
+    fb.classList.add('open');
+    const lblInput = fb.querySelector('input');
+    if (lblInput) setTimeout(() => lblInput.focus(), 50);
+  }
+  // 스크롤 내리기
+  setTimeout(() => {
+    const main = document.getElementById('main');
+    if (main) main.scrollTop = main.scrollHeight;
+  }, 50);
 }
 
 function renameSub() {
