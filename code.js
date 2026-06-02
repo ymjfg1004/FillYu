@@ -27,7 +27,13 @@ figma.ui.onmessage = async (msg) => {
       const { items, mode } = msg;
       const textLayers = figma.currentPage.selection
         .filter((node) => node.type === 'TEXT')
-        .sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+        .sort((a, b) => {
+          const ay = a.absoluteBoundingBox ? a.absoluteBoundingBox.y : a.y;
+          const by = b.absoluteBoundingBox ? b.absoluteBoundingBox.y : b.y;
+          const ax = a.absoluteBoundingBox ? a.absoluteBoundingBox.x : a.x;
+          const bx = b.absoluteBoundingBox ? b.absoluteBoundingBox.x : b.x;
+          return ay !== by ? ay - by : ax - bx;
+        });
       if (textLayers.length === 0) { figma.notify('텍스트 레이어를 선택해주세요.'); return; }
       if (!items || items.length === 0) { figma.notify('데이터가 없습니다.'); return; }
       for (let i = 0; i < textLayers.length; i++) {
