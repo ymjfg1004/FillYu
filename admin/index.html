@@ -272,6 +272,8 @@ async function loadFromGitHub() {
   }
 }
 
+let _saving = false;
+
 async function doSave(owner, repo, branch, path) {
   // 항상 최신 SHA 재확인
   const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
@@ -306,6 +308,8 @@ async function doSave(owner, repo, branch, path) {
 }
 
 async function saveToGitHub() {
+  if (_saving) { toast('저장 중입니다. 잠시 기다려주세요.'); return; }
+  _saving = true;
   const [owner, repo] = (cfg.repo || '').split('/');
   const branch = cfg.branch || 'main';
   const path = cfg.path || 'data/plugin-data.json';
@@ -315,11 +319,12 @@ async function saveToGitHub() {
   try {
     await doSave(owner, repo, branch, path);
     dirty = false;
-    toast('플러그인에 적용했습니다 ✓');
+    toast('저장 완료 ✓');
   } catch (e) {
     toast('저장 실패: ' + e.message);
     console.error(e);
   } finally {
+    _saving = false;
     btn.disabled = false;
     btn.textContent = '저장하기';
   }
