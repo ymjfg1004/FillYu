@@ -21,6 +21,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .role-badge{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:600}
 .role-badge.superadmin{background:#fff0e6;color:#e67e22}
 .role-badge.admin{background:#e8f4ff;color:#18a0fb}
+.role-badge.viewer{background:#f0f0f0;color:#888}
 .btn{padding:7px 14px;border:1px solid #e0e0e0;border-radius:6px;background:#f5f5f5;font-size:13px;cursor:pointer;font-weight:500;transition:all .15s}
 .btn:hover{background:#eaeaea}
 .btn.primary{background:#18a0fb;border-color:#18a0fb;color:#fff}
@@ -339,8 +340,9 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
       <div>
         <label class="lbl">역할</label>
         <select class="inp" id="nuRole">
-          <option value="admin">관리자 (admin)</option>
-          <option value="superadmin">최고관리자 (superadmin)</option>
+          <option value="viewer">일반 (보기만 가능)</option>
+          <option value="admin">관리자 (편집 가능)</option>
+          <option value="superadmin">최고관리자 (모든 권한)</option>
         </select>
       </div>
       <div><label class="lbl">초기 비밀번호</label><input class="inp" type="password" id="nuPass" placeholder="4자 이상"/></div>
@@ -497,9 +499,13 @@ function showApp() {
   // 사용자 정보 표시
   document.getElementById('hdUserName').textContent = session.name;
   const badge = document.getElementById('hdRoleBadge');
-  badge.textContent = session.role === 'superadmin' ? '최고관리자' : '관리자';
+  const roleLabel = {superadmin:'최고관리자', admin:'관리자', viewer:'일반 (보기 전용)'};
+  badge.textContent = roleLabel[session.role] || session.role;
   badge.className = 'role-badge ' + session.role;
   document.getElementById('userMgmtBtn').style.display = session.role === 'superadmin' ? '' : 'none';
+  // viewer는 저장 버튼 숨김
+  const canEdit = session.role !== 'viewer';
+  document.getElementById('saveBtn').style.display = canEdit ? '' : 'none';
 
   // GitHub 연결
   if (cfg.token && cfg.repo) {
@@ -746,16 +752,19 @@ function renderSidebar() {
     let html='';
     data.text.forEach(g=>{
       const open=expandedGroups[g.key]!==false;
-      html+=`<div class="tree-g"><div class="tree-g-hd" onclick="toggleGroup('${g.key}')"><span class="tree-arrow${open?' open':''}">▶</span><span class="tree-g-name" ondblclick="event.stopPropagation();renameGroupInline('${g.key}',this)" title="더블클릭으로 수정">${g.g}</span><button class="tree-g-del" onclick="event.stopPropagation();delGroup('${g.key}')">×</button></div>`;
+      const editBtn=canEdit()?`<button class="tree-g-del" onclick="event.stopPropagation();delGroup('${g.key}')">×</button>`:'';
+      const dblclick=canEdit()?`ondblclick="event.stopPropagation();renameGroupInline('${g.key}',this)" title="더블클릭으로 수정"`:'' ;
+      html+=`<div class="tree-g"><div class="tree-g-hd" onclick="toggleGroup('${g.key}')"><span class="tree-arrow${open?' open':''}">▶</span><span class="tree-g-name" ${dblclick}>${g.g}</span>${editBtn}</div>`;
       if(open){
         html+=`<div class="tree-subs">`;
-        g.subs.forEach(s=>{const on=selection&&selection.subKey===s.key?' on':'';html+=`<div class="tree-sub${on}" onclick="selectSub('${g.key}','${s.key}')"><span class="tree-sub-name">${s.name}</span><button class="tree-sub-del" onclick="event.stopPropagation();delSub('${g.key}','${s.key}')">×</button></div>`;});
-        html+=`<div class="inline-add"><input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline('${g.key}',this.value,this)"/><button class="btn sm" onclick="addSubInline('${g.key}',this.previousElementSibling.value,this.previousElementSibling)">+</button></div></div>`;
+        g.subs.forEach(s=>{const on=selection&&selection.subKey===s.key?' on':'';const delBtn=canEdit()?`<button class="tree-sub-del" onclick="event.stopPropagation();delSub('${g.key}','${s.key}')">×</button>`:'';html+=`<div class="tree-sub${on}" onclick="selectSub('${g.key}','${s.key}')"><span class="tree-sub-name">${s.name}</span>${delBtn}</div>`;});
+        if(canEdit())html+=`<div class="inline-add"><input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline('${g.key}',this.value,this)"/><button class="btn sm" onclick="addSubInline('${g.key}',this.previousElementSibling.value,this.previousElementSibling)">+</button></div>`;
+        html+=`</div>`;
       }
       html+='</div>';
     });
     scroll.innerHTML=html;
-    addBar.innerHTML=`<button class="btn" style="width:100%;font-size:12px" onclick="openAddGroup()">+ 그룹 추가</button>`;
+    addBar.innerHTML=canEdit()?`<button class="btn" style="width:100%;font-size:12px" onclick="openAddGroup()">+ 그룹 추가</button>`:'';
   } else if(sbTab==='number'){
     let html='';
     data.number.forEach(g=>{html+=`<div class="sb-g-label">${g.g}</div>`;g.items.forEach((item,ii)=>{const on=selection&&selection.groupKey===g.key&&selection.itemIdx===ii?' on':'';html+=`<div class="sb-item${on}" onclick="selectNumItem('${g.key}',${ii})"><span class="sb-item-name">${item.lbl}</span></div>`;});});
@@ -775,6 +784,7 @@ function selectDateItem(gKey,idx){selection={type:'date',groupKey:gKey,itemIdx:i
 // ─── Main ──────────────────────────────────────────
 function renderMain() {
   const main=document.getElementById('main');
+  const editable=canEdit();
   if(!data||!selection){main.innerHTML='<div class="main-empty">← 왼쪽에서 항목을 선택하세요</div>';return;}
   if(selection.type==='text'){
     const g=data.text.find(x=>x.key===selection.groupKey);
@@ -785,9 +795,10 @@ function renderMain() {
         <div class="field-hd" onclick="toggleField(${fi})">
           <span class="field-tag">#</span><span class="field-lbl">${f.lbl||'(이름 없음)'}</span>
           <span class="field-cnt">${f.v.length}개</span>
-          <button class="btn sm danger" onclick="event.stopPropagation();delField(${fi})" style="margin-left:8px">삭제</button>
+          ${editable?`<button class="btn sm danger" onclick="event.stopPropagation();delField(${fi})" style="margin-left:8px">삭제</button>`:''}
         </div>
         <div class="field-body" id="fb_${fi}">
+          ${editable?`
           <label class="lbl">레이블 / ID</label>
           <div class="inp-row">
             <input class="inp" value="${esc(f.lbl)}" onchange="updateField(${fi},'lbl',this.value)" placeholder="레이블"/>
@@ -799,9 +810,14 @@ function renderMain() {
             <div class="hint">${f.v.length}개 값</div>
             <button class="btn sm primary" onclick="saveField(this)">저장</button>
           </div>
+          `:`
+          <label class="lbl">값 목록</label>
+          <div style="background:#f8f8f8;border-radius:6px;padding:10px 12px;font-size:13px;color:#555;line-height:1.8;max-height:200px;overflow-y:auto">${f.v.map(v=>`<div>• ${esc(v)}</div>`).join('')}</div>
+          <div class="hint" style="margin-top:6px">${f.v.length}개 값 (보기 전용)</div>
+          `}
         </div>
       </div>`).join('');
-    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">${g.g} / ${sub.name}</div><div class="panel-sub">필드를 클릭하면 편집할 수 있습니다</div></div><button class="btn sm" onclick="renameSub()">이름 수정</button></div><div class="panel-body">${fieldsHtml}<button class="add-field-btn" onclick="addField()">+ 필드 추가</button></div></div>`;
+    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">${g.g} / ${sub.name}</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div>${editable?`<button class="btn sm" onclick="renameSub()">이름 수정</button>`:''}</div><div class="panel-body">${fieldsHtml}${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}</div></div>`;
   } else if(selection.type==='number'){
     const g=data.number.find(x=>x.key===selection.groupKey);
     const item=g&&g.items[selection.itemIdx];
@@ -851,7 +867,8 @@ function addSubInline(gKey,name,input){if(!name||!name.trim())return;const g=dat
 function updateNumItem(key,val){const g=data.number.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 function updateDateItem(key,val){const g=data.date.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 
-function markDirty(){dirty=true;document.getElementById('saveBtn').disabled=false;}
+function canEdit(){return session && session.role !== 'viewer';}
+function markDirty(){if(!canEdit())return;dirty=true;document.getElementById('saveBtn').disabled=false;}
 function setStatus(text,cls){const el=document.getElementById('ghStatus');el.textContent=text;el.className='hd-status '+(cls||'');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
