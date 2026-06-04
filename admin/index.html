@@ -359,51 +359,46 @@ async function loadUsers() {
   const [owner, repo] = cfg.repo.split('/');
   const branch = cfg.branch || 'main';
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
-      headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
-    });
+    const res = await ghFetch(`/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`);
     if (res.ok) {
       const json = await res.json();
       usersSha = json.sha;
       const parsed = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
       users = parsed.users || [];
     } else {
-      console.warn('loadUsers 실패:', res.status, await res.text());
+      console.warn('loadUsers 실패:', res.status);
     }
   } catch(e) { console.error('loadUsers 오류:', e); }
 }
 
 async function saveUsers() {
-  const [owner, repo] = cfg.repo.split('/');
+  // ghFetch 사용 (plugin-data 저장과 동일한 방식)
+  const [owner, repo] = (cfg.repo || '').split('/');
   const branch = cfg.branch || 'main';
   const content = btoa(unescape(encodeURIComponent(JSON.stringify({users}, null, 2))));
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 500));
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600));
     try {
-      // 최신 SHA 가져오기
-      const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
-        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
-      });
+      const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`);
       if (checkRes.ok) usersSha = (await checkRes.json()).sha;
 
       const body = { message: 'Update users.json', content, branch };
       if (usersSha) body.sha = usersSha;
 
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}`, {
+      const res = await ghFetch(`/repos/${owner}/${repo}/contents/${USERS_PATH}`, {
         method: 'PUT',
-        headers: { Authorization: 'Bearer ' + cfg.token, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' },
         body: JSON.stringify(body)
       });
       if (res.ok) { usersSha = (await res.json()).content.sha; return; }
-      if (res.status === 409) { continue; } // SHA 충돌 → 재시도
+      if (res.status === 409) { continue; }
       const e = await res.json();
-      throw new Error(e.message);
+      throw new Error(`(${res.status}) ${e.message}`);
     } catch(e) {
-      if (attempt === 2) throw e; // 3회 모두 실패
-      // 네트워크 오류면 재시도
+      if (attempt === 2) throw e;
     }
   }
+  throw new Error('3회 재시도 실패');
 }
 
 async function login() {
