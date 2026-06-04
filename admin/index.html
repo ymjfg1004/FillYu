@@ -399,7 +399,7 @@ function renderSidebar() {
       html += `<div class="tree-g">
         <div class="tree-g-hd" onclick="toggleGroup('${g.key}')">
           <span class="tree-arrow${open?' open':''}">▶</span>
-          <span class="tree-g-name">${g.g}</span>
+          <span class="tree-g-name" ondblclick="event.stopPropagation();renameGroupInline('${g.key}',this)" title="더블클릭으로 이름 수정">${g.g}</span>
           <button class="tree-g-del" onclick="event.stopPropagation();delGroup('${g.key}')" title="그룹 삭제">×</button>
         </div>`;
       if (open) {
@@ -672,6 +672,31 @@ function delSub(gKey, sKey) {
   markDirty();
   renderSidebar();
   renderMain();
+}
+
+function renameGroupInline(gKey, el) {
+  const g = data.text.find(x => x.key === gKey);
+  if (!g) return;
+  const prev = g.g;
+  const input = document.createElement('input');
+  input.value = prev;
+  input.style.cssText = 'font-size:12px;font-weight:600;color:#333;border:1px solid #18a0fb;border-radius:4px;padding:1px 6px;width:110px;outline:none;background:#fff';
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+  const done = () => {
+    const val = input.value.trim() || prev;
+    g.g = val;
+    const span = document.createElement('span');
+    span.className = 'tree-g-name';
+    span.title = '더블클릭으로 이름 수정';
+    span.textContent = val;
+    span.ondblclick = (e) => { e.stopPropagation(); renameGroupInline(gKey, span); };
+    input.replaceWith(span);
+    if (val !== prev) { markDirty(); }
+  };
+  input.onblur = done;
+  input.onkeydown = (e) => { if (e.key === 'Enter') done(); if (e.key === 'Escape') { input.value = prev; done(); } };
 }
 
 function delGroup(gKey) {
