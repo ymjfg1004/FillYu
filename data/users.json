@@ -1,1 +1,11 @@
-{"users":[]}
+{
+  "users": [
+    {
+      "id": "u_1780538255414",
+      "username": "ymj",
+      "name": "유미진",
+      "role": "superadmin",
+      "passwordHash": "09b56f21e3c4370acc15a9e76ed4064f50d06085b630f7b2e736d8a90b369923"
+    }
+  ]
+}
