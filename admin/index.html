@@ -394,8 +394,8 @@ async function loadUsers() {
   const [owner, repo] = cfg.repo.split('/');
   const branch = cfg.branch || 'main';
   try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}`, {
-      headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json' }
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
+      headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
     });
     if (res.ok) {
       const json = await res.json();
@@ -412,8 +412,8 @@ async function saveUsers() {
   const [owner, repo] = cfg.repo.split('/');
   const branch = cfg.branch || 'main';
   // 항상 최신 SHA 먼저 가져오기
-  const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}`, {
-    headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json' }
+  const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
+    headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
   });
   if (checkRes.ok) {
     const checkJson = await checkRes.json();
