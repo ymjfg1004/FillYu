@@ -411,28 +411,33 @@ async function loadUsers() {
 async function saveUsers() {
   const [owner, repo] = cfg.repo.split('/');
   const branch = cfg.branch || 'main';
-  // 항상 최신 SHA 먼저 가져오기
-  const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
-    headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
-  });
-  if (checkRes.ok) {
-    const checkJson = await checkRes.json();
-    usersSha = checkJson.sha;
-  }
   const content = btoa(unescape(encodeURIComponent(JSON.stringify({users}, null, 2))));
-  const body = { message: 'Update users.json', content, branch };
-  if (usersSha) body.sha = usersSha;
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}`, {
-    method: 'PUT',
-    headers: { Authorization: 'Bearer ' + cfg.token, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' },
-    body: JSON.stringify(body)
-  });
-  if (res.ok) {
-    const json = await res.json();
-    usersSha = json.content.sha;
-  } else {
-    const e = await res.json();
-    throw new Error(e.message);
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500));
+    try {
+      // 최신 SHA 가져오기
+      const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}&t=${Date.now()}`, {
+        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'Cache-Control': 'no-cache' }
+      });
+      if (checkRes.ok) usersSha = (await checkRes.json()).sha;
+
+      const body = { message: 'Update users.json', content, branch };
+      if (usersSha) body.sha = usersSha;
+
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}`, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + cfg.token, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) { usersSha = (await res.json()).content.sha; return; }
+      if (res.status === 409) { continue; } // SHA 충돌 → 재시도
+      const e = await res.json();
+      throw new Error(e.message);
+    } catch(e) {
+      if (attempt === 2) throw e; // 3회 모두 실패
+      // 네트워크 오류면 재시도
+    }
   }
 }
 
