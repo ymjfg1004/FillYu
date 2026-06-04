@@ -173,7 +173,7 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
   <button class="btn sm" id="userMgmtBtn" onclick="showUserMgmt()" style="display:none">👥 사용자 관리</button>
   <button class="btn sm" onclick="logout()">로그아웃</button>
   <div class="hd-status" id="ghStatus">GitHub 미연결</div>
-  <button class="btn sm" onclick="openSettings()">⚙ 설정</button>
+  <button class="btn sm" id="settingsBtn" onclick="openSettings()" style="display:none">⚙ 설정</button>
   <button class="btn primary" id="saveBtn" onclick="saveToGitHub()" disabled>🔌 플러그인 적용</button>
 </div>
 
@@ -466,7 +466,9 @@ function showApp() {
   const roleLabel = {superadmin:'최고관리자', admin:'관리자', viewer:'일반 (보기 전용)'};
   badge.textContent = roleLabel[session.role] || session.role;
   badge.className = 'role-badge ' + session.role;
-  document.getElementById('userMgmtBtn').style.display = session.role === 'superadmin' ? '' : 'none';
+  const isSuperAdmin = session.role === 'superadmin';
+  document.getElementById('userMgmtBtn').style.display = isSuperAdmin ? '' : 'none';
+  document.getElementById('settingsBtn').style.display = isSuperAdmin ? '' : 'none';
   // viewer는 저장 버튼 숨김
   const canEdit = session.role !== 'viewer';
   document.getElementById('saveBtn').style.display = canEdit ? '' : 'none';
