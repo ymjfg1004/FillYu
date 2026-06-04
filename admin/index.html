@@ -187,7 +187,7 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
     </div>
     <div>
       <label class="lbl">비밀번호</label>
-      <input class="inp" type="password" id="setupPass" placeholder="8자 이상"/>
+      <input class="inp" type="password" id="setupPass" placeholder="4자 이상"/>
     </div>
     <div>
       <label class="lbl">비밀번호 확인</label>
@@ -343,7 +343,7 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
           <option value="superadmin">최고관리자 (superadmin)</option>
         </select>
       </div>
-      <div><label class="lbl">초기 비밀번호</label><input class="inp" type="password" id="nuPass" placeholder="8자 이상"/></div>
+      <div><label class="lbl">초기 비밀번호</label><input class="inp" type="password" id="nuPass" placeholder="4자 이상"/></div>
     </div>
     <div class="auth-error" id="nuError"></div>
     <div class="modal-footer">
@@ -506,7 +506,7 @@ async function setupAdmin() {
 
   if (!token||!repo||!username||!name||!pass) { errEl.textContent='모든 항목을 입력해주세요.'; errEl.classList.add('show'); return; }
   if (pass !== pass2) { errEl.textContent='비밀번호가 일치하지 않습니다.'; errEl.classList.add('show'); return; }
-  if (pass.length < 8) { errEl.textContent='비밀번호는 8자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
+  if (pass.length < 4) { errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
 
   cfg = { token, repo, branch, path: 'data/plugin-data.json' };
   localStorage.setItem('ghCfg', JSON.stringify(cfg));
@@ -546,7 +546,7 @@ async function changePassword() {
   errEl.classList.remove('show');
 
   if (newPass !== newPass2) { errEl.textContent='새 비밀번호가 일치하지 않습니다.'; errEl.classList.add('show'); return; }
-  if (newPass.length < 8) { errEl.textContent='비밀번호는 8자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
+  if (newPass.length < 4) { errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
 
   const currentHash = await sha256(current);
   const user = users.find(u => u.id === session.id);
@@ -594,7 +594,7 @@ async function addUser() {
   errEl.classList.remove('show');
 
   if (!id||!name||!pass) { errEl.textContent='모든 항목을 입력해주세요.'; errEl.classList.add('show'); return; }
-  if (pass.length < 8) { errEl.textContent='비밀번호는 8자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
+  if (pass.length < 4) { errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; errEl.classList.add('show'); return; }
   if (users.find(u=>u.username===id)) { errEl.textContent='이미 존재하는 아이디입니다.'; errEl.classList.add('show'); return; }
 
   const passwordHash = await sha256(pass);
@@ -611,9 +611,9 @@ async function addUser() {
 
 async function resetUserPass(idx) {
   const u = users[idx];
-  const newPass = prompt(`${u.name} 의 새 비밀번호를 입력하세요 (8자 이상):`);
+  const newPass = prompt(`${u.name} 의 새 비밀번호를 입력하세요 (4자 이상):`);
   if (!newPass) return;
-  if (newPass.length < 8) { toast('비밀번호는 8자 이상이어야 합니다.'); return; }
+  if (newPass.length < 4) { toast('비밀번호는 4자 이상이어야 합니다.'); return; }
   u.passwordHash = await sha256(newPass);
   try {
     await saveUsers();
