@@ -400,8 +400,10 @@ async function loadUsers() {
       usersSha = json.sha;
       const parsed = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
       users = parsed.users || [];
+    } else {
+      console.warn('loadUsers 실패:', res.status, await res.text());
     }
-  } catch(e) {}
+  } catch(e) { console.error('loadUsers 오류:', e); }
 }
 
 async function saveUsers() {
@@ -429,17 +431,33 @@ async function login() {
   const password = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
   errEl.classList.remove('show');
+  errEl.style.color = '#c0392b';
 
-  if (!username || !password) { errEl.classList.add('show'); return; }
+  if (!username || !password) {
+    errEl.textContent = '아이디와 비밀번호를 입력해주세요.';
+    errEl.classList.add('show'); return;
+  }
 
-  // GitHub 설정 없으면 먼저 로드
-  if (users.length === 0 && cfg.token && cfg.repo) {
-    await loadUsers();
+  // GitHub 설정 없으면
+  if (!cfg.token || !cfg.repo) {
+    errEl.textContent = 'GitHub 설정이 필요합니다. 아래 "최초 설정"을 클릭해주세요.';
+    errEl.classList.add('show'); return;
+  }
+
+  // 유저 목록 로드 (항상 최신으로)
+  await loadUsers();
+
+  if (users.length === 0) {
+    errEl.textContent = '등록된 사용자가 없습니다. "최초 설정"에서 계정을 만들어주세요.';
+    errEl.classList.add('show'); return;
   }
 
   const hash = await sha256(password);
   const user = users.find(u => u.username === username && u.passwordHash === hash);
-  if (!user) { errEl.classList.add('show'); return; }
+  if (!user) {
+    errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+    errEl.classList.add('show'); return;
+  }
 
   session = { id: user.id, username: user.username, name: user.name, role: user.role, expires: Date.now() + 8*3600*1000 };
   localStorage.setItem('adminSession', JSON.stringify(session));
