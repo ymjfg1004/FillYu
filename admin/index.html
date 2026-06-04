@@ -275,36 +275,35 @@ async function loadFromGitHub() {
 let _saving = false;
 
 async function doSave(owner, repo, branch, path) {
-  // 항상 최신 SHA 재확인
-  const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
-  if (!checkRes.ok) {
-    const e = await checkRes.json();
-    throw new Error(`파일 조회 실패 (${checkRes.status}): ${e.message}`);
-  }
-  fileSha = (await checkRes.json()).sha;
-
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-  const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
-    method: 'PUT',
-    body: JSON.stringify({ message: 'Update plugin-data.json via admin', content, sha: fileSha, branch })
-  });
+  // 최대 3회 재시도 (SHA 충돌 대비)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // 매 시도마다 최신 SHA 가져오기
+    const checkRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
+    if (!checkRes.ok) {
+      const e = await checkRes.json();
+      throw new Error(`파일 조회 실패 (${checkRes.status}): ${e.message}`);
+    }
+    fileSha = (await checkRes.json()).sha;
 
-  if (res.status === 409) {
-    // SHA 충돌 → 한 번 더 재시도
-    const retryCheck = await ghFetch(`/repos/${owner}/${repo}/contents/${path}?ref=${branch}`);
-    fileSha = (await retryCheck.json()).sha;
-    const retryRes = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
+    const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`, {
       method: 'PUT',
       body: JSON.stringify({ message: 'Update plugin-data.json via admin', content, sha: fileSha, branch })
     });
-    if (!retryRes.ok) { const e = await retryRes.json(); throw new Error(`(${retryRes.status}) ${e.message}`); }
-    fileSha = (await retryRes.json()).content.sha;
-  } else if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`(${res.status}) ${err.message}`);
-  } else {
-    fileSha = (await res.json()).content.sha;
+
+    if (res.ok) {
+      fileSha = (await res.json()).content.sha;
+      return; // 성공
+    } else if (res.status === 409) {
+      // SHA 충돌 → 재시도
+      await new Promise(r => setTimeout(r, 300));
+      continue;
+    } else {
+      const err = await res.json();
+      throw new Error(`(${res.status}) ${err.message}`);
+    }
   }
+  throw new Error('3회 재시도 후에도 저장 실패. 페이지를 새로고침 후 다시 시도해주세요.');
 }
 
 // 필드 저장 버튼용 - 상단 버튼과 독립
