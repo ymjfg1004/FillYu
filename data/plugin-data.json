@@ -1880,7 +1880,8 @@
           "min": 1,
           "max": 99,
           "dec": 0,
-          "suffix": ""
+          "suffix": "",
+          "thousands": false
         },
         {
           "lbl": "세 자리 숫자",
@@ -1888,7 +1889,8 @@
           "min": 100,
           "max": 999,
           "dec": 0,
-          "suffix": ""
+          "suffix": "",
+          "thousands": false
         },
         {
           "lbl": "네 자리 숫자",
@@ -1931,7 +1933,8 @@
           "max": 70,
           "dec": 0,
           "suffix": "%",
-          "step": 5
+          "step": 5,
+          "thousands": false
         }
       ]
     },
