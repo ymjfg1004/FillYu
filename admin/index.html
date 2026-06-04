@@ -454,22 +454,13 @@ function logout() {
 
 function showLogin() {
   document.getElementById('loginPage').style.display = 'flex';
-  document.getElementById('setupPage').style.display = 'none';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').classList.remove('show');
 }
 
-function showSetup() {
-  document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('setupPage').style.display = 'flex';
-  if (cfg.token) document.getElementById('setupToken').value = cfg.token;
-  if (cfg.repo) document.getElementById('setupRepo').value = cfg.repo;
-}
-
 function showApp() {
   document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('setupPage').style.display = 'none';
   const wrap = document.getElementById('appWrap');
   wrap.style.display = 'flex';
   wrap.style.flexDirection = 'column';
