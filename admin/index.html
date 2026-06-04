@@ -154,7 +154,7 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
     </div>
     <div class="auth-error" id="loginError">아이디 또는 비밀번호가 올바르지 않습니다.</div>
     <button class="btn primary" onclick="login()" style="width:100%;padding:10px">로그인</button>
-    <button class="btn" onclick="showSetup()" style="width:100%;font-size:12px;color:#aaa;border:none;background:none">⚙ 최초 설정 / GitHub 연결</button>
+    <button class="btn" id="setupBtn" onclick="showSetup()" style="width:100%;font-size:12px;color:#aaa;border:none;background:none;display:none">⚙ 최초 설정 / GitHub 연결</button>
   </div>
 </div>
 
@@ -493,6 +493,8 @@ function showLogin() {
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').classList.remove('show');
+  // 등록된 사용자가 없을 때만 최초 설정 버튼 표시
+  document.getElementById('setupBtn').style.display = users.length === 0 ? '' : 'none';
 }
 
 function showSetup() {
