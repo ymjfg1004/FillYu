@@ -411,6 +411,14 @@ async function loadUsers() {
 async function saveUsers() {
   const [owner, repo] = cfg.repo.split('/');
   const branch = cfg.branch || 'main';
+  // 항상 최신 SHA 먼저 가져오기
+  const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${USERS_PATH}?ref=${branch}`, {
+    headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json' }
+  });
+  if (checkRes.ok) {
+    const checkJson = await checkRes.json();
+    usersSha = checkJson.sha;
+  }
   const content = btoa(unescape(encodeURIComponent(JSON.stringify({users}, null, 2))));
   const body = { message: 'Update users.json', content, branch };
   if (usersSha) body.sha = usersSha;
