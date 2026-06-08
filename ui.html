@@ -77,6 +77,8 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 .mode-grp{display:flex;gap:3px}
 .mode-btn{padding:4px 8px;border:1px solid #e0e0e0;border-radius:4px;background:#f0f0f0;font-size:11px;color:#666;cursor:pointer}
 .mode-btn.on{background:#18a0fb;border-color:#18a0fb;color:#fff;font-weight:600}
+.blank-btn{padding:4px 8px;border:1px solid #e0e0e0;border-radius:4px;background:#f0f0f0;font-size:11px;color:#666;cursor:pointer;margin-left:4px;border-style:dashed}
+.blank-btn.on{background:#fff7e6;border-color:#ffa940;color:#d46b08;font-weight:600;border-style:dashed}
 /* Notice */
 .notice{padding:8px 10px;background:#fffbe6;border-bottom:1px solid #ffe58f;font-size:11px;color:#7d6608;line-height:1.5}
 </style>
@@ -95,11 +97,11 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 <div class="bot">
   <div class="bot-cnt" id="botCnt"><span>0</span>개 텍스트 레이어 선택됨</div>
   <div class="mode-grp">
-    <button class="mode-btn on" id="mSeq" onclick="setMode('sequential')">순서대로</button>
-    <button class="mode-btn" id="mAsc" onclick="setMode('asc')">오름차순</button>
+    <button class="mode-btn on" id="mAsc" onclick="setMode('asc')">오름차순</button>
     <button class="mode-btn" id="mDesc" onclick="setMode('desc')">내림차순</button>
     <button class="mode-btn" id="mRnd" onclick="setMode('random')">랜덤</button>
   </div>
+  <button class="blank-btn" id="mBlank" onclick="toggleBlank()">공백포함</button>
 </div>
 
 <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="importCSV(this)"/>
@@ -110,7 +112,8 @@ let tab = 'text';
 let textView = 'profile_info';
 let numView = 'custom';
 let dateView = 'date';
-let mode = 'sequential';
+let mode = 'asc';
+let includeBlank = false;
 let selCount = 0;
 let customLists = [];
 let searchQ = '';
@@ -261,7 +264,7 @@ const DATE = [
 // ─── Helpers ──────────────────────────────────────────────
 function gen100(fn){return Array.from({length:100},fn);}
 function applyItems(items){
-  parent.postMessage({pluginMessage:{type:'apply',items,mode}},'*');
+  parent.postMessage({pluginMessage:{type:'apply',items,mode,includeBlank}},'*');
 }
 function applyEncoded(encoded){
   const items=JSON.parse(decodeURIComponent(encoded));
@@ -270,10 +273,13 @@ function applyEncoded(encoded){
 
 function setMode(m){
   mode=m;
-  document.getElementById('mSeq').classList.toggle('on',m==='sequential');
   document.getElementById('mAsc').classList.toggle('on',m==='asc');
   document.getElementById('mDesc').classList.toggle('on',m==='desc');
   document.getElementById('mRnd').classList.toggle('on',m==='random');
+}
+function toggleBlank(){
+  includeBlank=!includeBlank;
+  document.getElementById('mBlank').classList.toggle('on',includeBlank);
 }
 
 function updateBot(){
