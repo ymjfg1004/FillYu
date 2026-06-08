@@ -43,11 +43,8 @@ figma.ui.onmessage = async (msg) => {
         const layer = textLayers[i];
         const fonts = layer.getRangeAllFontNames(0, layer.characters.length);
         for (const font of fonts) await figma.loadFontAsync(font);
-        // 공백포함 ON이면 레이어마다 30% 확률로 빈 텍스트
-        if (includeBlank && Math.random() < 0.3) {
-          layer.characters = '';
-          continue;
-        }
+        // 공백포함 ON이면 레이어마다 30% 확률로 건너뜀 (기존 텍스트 유지)
+        if (includeBlank && Math.random() < 0.3) continue;
         const value = mode === 'random'
           ? pool[Math.floor(Math.random() * pool.length)]
           : pool[i % pool.length];
