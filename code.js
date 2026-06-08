@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'customTextFillerLists';
 
-figma.showUI(__html__, { width: 380, height: 560 });
+figma.showUI(__html__, { width: 400, height: 560 });
 
 figma.on('selectionchange', () => {
   const count = figma.currentPage.selection.filter(n => n.type === 'TEXT').length;
@@ -36,13 +36,16 @@ figma.ui.onmessage = async (msg) => {
         });
       if (textLayers.length === 0) { figma.notify('텍스트 레이어를 선택해주세요.'); return; }
       if (!items || items.length === 0) { figma.notify('데이터가 없습니다.'); return; }
+      let pool = [...items];
+      if (mode === 'asc')  pool = [...items].sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+      if (mode === 'desc') pool = [...items].sort((a,b)=>String(b).localeCompare(String(a),'ko'));
       for (let i = 0; i < textLayers.length; i++) {
         const layer = textLayers[i];
         const fonts = layer.getRangeAllFontNames(0, layer.characters.length);
         for (const font of fonts) await figma.loadFontAsync(font);
-        const value = mode === 'sequential'
-          ? items[i % items.length]
-          : items[Math.floor(Math.random() * items.length)];
+        const value = mode === 'random'
+          ? pool[Math.floor(Math.random() * pool.length)]
+          : pool[i % pool.length];
         layer.characters = String(value);
       }
       figma.notify(`${textLayers.length}개 레이어에 적용했습니다.`);

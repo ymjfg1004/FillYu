@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:380px;height:560px;overflow:hidden}
+html,body{width:400px;height:560px;overflow:hidden}
 body{overflow-x:hidden}
 body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;background:#fff;display:flex;flex-direction:column}
 /* Tab bar */
@@ -15,13 +15,13 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 /* Content */
 .content{display:flex;flex:1;overflow:hidden;overflow-x:hidden}
 /* Left panel */
-.lp{width:112px;border-right:1px solid #eee;overflow-y:auto;flex-shrink:0;padding-bottom:8px}
-.lg{font-size:10px;font-weight:600;color:#ccc;padding:10px 10px 3px;letter-spacing:.3px;text-transform:uppercase}
-.li{padding:6px 10px;font-size:12px;color:#555;cursor:pointer;border-left:2px solid transparent;line-height:1.3}
+.lp{width:120px;border-right:1px solid #eee;overflow-y:auto;flex-shrink:0;padding-bottom:8px}
+.lg{font-size:9px;font-weight:600;color:#ccc;padding:8px 8px 2px;letter-spacing:.3px;text-transform:uppercase}
+.li{padding:5px 8px;font-size:11px;color:#555;cursor:pointer;border-left:2px solid transparent;line-height:1.3}
 .li:hover{background:#f5f5f5;color:#1a1a1a}
 .li.on{background:#eef7ff;color:#18a0fb;border-left-color:#18a0fb;font-weight:600}
 /* Right panel */
-.rp{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;max-width:calc(380px - 112px)}
+.rp{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;max-width:calc(400px - 120px)}
 .srch{padding:7px 8px;border-bottom:1px solid #f0f0f0;flex-shrink:0}
 .srch input{width:100%;padding:5px 8px 5px 26px;border:1px solid #e8e8e8;border-radius:5px;font-size:12px;background:#f8f8f8;outline:none;color:#333}
 .srch input:focus{border-color:#18a0fb;background:#fff}
@@ -96,6 +96,8 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
   <div class="bot-cnt" id="botCnt"><span>0</span>개 텍스트 레이어 선택됨</div>
   <div class="mode-grp">
     <button class="mode-btn on" id="mSeq" onclick="setMode('sequential')">순서대로</button>
+    <button class="mode-btn" id="mAsc" onclick="setMode('asc')">오름차순</button>
+    <button class="mode-btn" id="mDesc" onclick="setMode('desc')">내림차순</button>
     <button class="mode-btn" id="mRnd" onclick="setMode('random')">랜덤</button>
   </div>
 </div>
@@ -269,6 +271,8 @@ function applyEncoded(encoded){
 function setMode(m){
   mode=m;
   document.getElementById('mSeq').classList.toggle('on',m==='sequential');
+  document.getElementById('mAsc').classList.toggle('on',m==='asc');
+  document.getElementById('mDesc').classList.toggle('on',m==='desc');
   document.getElementById('mRnd').classList.toggle('on',m==='random');
 }
 
