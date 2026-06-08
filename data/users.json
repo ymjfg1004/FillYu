@@ -6,6 +6,13 @@
       "name": "유미진",
       "role": "superadmin",
       "passwordHash": "09b56f21e3c4370acc15a9e76ed4064f50d06085b630f7b2e736d8a90b369923"
+    },
+    {
+      "id": "u_1780891735612",
+      "username": "ymj2",
+      "name": "유미진2",
+      "role": "admin",
+      "passwordHash": "edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9"
     }
   ]
 }
