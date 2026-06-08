@@ -36,9 +36,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* Sidebar */
 .sb{width:220px;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;overflow:hidden;overflow-x:hidden;flex-shrink:0;min-height:0}
-.sb-tabs{display:flex;border-bottom:1px solid #eee;padding:0 6px;flex-shrink:0}
-.sb-tab{flex:1;padding:9px 4px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;color:#aaa;border-bottom:2px solid transparent}
-.sb-tab.on{color:#18a0fb;border-bottom-color:#18a0fb;font-weight:700}
 .sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0;width:100%}
 .sb-add{padding:8px;border-top:1px solid #f0f0f0;flex-shrink:0}
 
@@ -181,11 +178,6 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
 <!-- Body -->
 <div class="body">
   <div class="sb">
-    <div class="sb-tabs">
-      <div class="sb-tab on" onclick="switchSbTab('text',this)">텍스트</div>
-      <div class="sb-tab" onclick="switchSbTab('number',this)">숫자</div>
-      <div class="sb-tab" onclick="switchSbTab('date',this)">날짜</div>
-    </div>
     <div class="sb-scroll" id="sbScroll"></div>
     <div class="sb-add" id="sbAdd"></div>
   </div>
@@ -640,7 +632,6 @@ async function deleteUser(idx) {
 let cfg = JSON.parse(localStorage.getItem('ghCfg') || '{}');
 let data = null;
 let fileSha = '';
-let sbTab = 'text';
 let selection = null;
 let dirty = false;
 let expandedGroups = {};
@@ -720,8 +711,6 @@ function connectGitHub() {
 }
 
 // ─── Sidebar ──────────────────────────────────────
-function switchSbTab(t,el){sbTab=t;document.querySelectorAll('.sb-tab').forEach(e=>e.classList.remove('on'));el.classList.add('on');selection=null;renderSidebar();renderMain();}
-
 function renderSidebar() {
   const scroll=document.getElementById('sbScroll');
   const addBar=document.getElementById('sbAdd');
