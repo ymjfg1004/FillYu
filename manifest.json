@@ -1,5 +1,5 @@
 {
-  "name": "Custom Text Filler",
+  "name": "fillYU_한글채우기",
   "id": "custom-text-filler",
   "api": "1.0.0",
   "main": "code.js",
