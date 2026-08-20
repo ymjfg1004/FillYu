@@ -210,6 +210,10 @@ const NUM = [
   { g:'금액', key:'price', items:[
     { lbl:'금액 (원)', fmt:'1,000 ~ 99,000', gen:()=>(ri(1,99)*1000).toLocaleString()+'원' },
     { lbl:'금액 (만원)', fmt:'1만 ~ 100만', gen:()=>ri(1,100).toLocaleString()+'만원' },
+    { lbl:'금액 (백만원)', fmt:'1백만 ~ 9백만', gen:()=>(ri(100,999)*10000).toLocaleString()+'원' },
+    { lbl:'금액 (천만원)', fmt:'1천만 ~ 9천만', gen:()=>(ri(1000,9999)*10000).toLocaleString()+'원' },
+    { lbl:'금액 (억)', fmt:'1억 ~ 99억', gen:()=>ri(1,99)+'억원' },
+    { lbl:'금액 (조)', fmt:'1조 ~ 99조', gen:()=>ri(1,99)+'조원' },
     { lbl:'할인율', fmt:'5% ~ 70%', gen:()=>(ri(1,14)*5)+'%' },
   ]},
   { g:'백분율', key:'pct', items:[

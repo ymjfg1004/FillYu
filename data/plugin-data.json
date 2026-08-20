@@ -1927,6 +1927,44 @@
           "thousands": true
         },
         {
+          "lbl": "금액 (백만원)",
+          "fmt": "1백만 ~ 9백만",
+          "min": 1000000,
+          "max": 9990000,
+          "dec": 0,
+          "suffix": "원",
+          "thousands": true,
+          "step": 10000
+        },
+        {
+          "lbl": "금액 (천만원)",
+          "fmt": "1천만 ~ 9천만",
+          "min": 10000000,
+          "max": 99990000,
+          "dec": 0,
+          "suffix": "원",
+          "thousands": true,
+          "step": 10000
+        },
+        {
+          "lbl": "금액 (억)",
+          "fmt": "1억 ~ 99억",
+          "min": 1,
+          "max": 99,
+          "dec": 0,
+          "suffix": "억원",
+          "thousands": false
+        },
+        {
+          "lbl": "금액 (조)",
+          "fmt": "1조 ~ 99조",
+          "min": 1,
+          "max": 99,
+          "dec": 0,
+          "suffix": "조원",
+          "thousands": false
+        },
+        {
           "lbl": "할인율",
           "fmt": "5% ~ 70%",
           "min": 5,
