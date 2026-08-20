@@ -6,6 +6,6 @@
   "ui": "ui.html",
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": ["https://raw.githubusercontent.com"]
+    "allowedDomains": ["https://raw.githubusercontent.com", "https://*.supabase.co"]
   }
 }

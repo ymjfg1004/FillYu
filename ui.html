@@ -22,13 +22,34 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 .li.on{background:#eef7ff;color:#18a0fb;border-left-color:#18a0fb;font-weight:600}
 /* Right panel */
 .rp{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;max-width:calc(400px - 120px)}
+.rp.rp-full{max-width:400px}
 .srch{padding:7px 8px;border-bottom:1px solid #f0f0f0;flex-shrink:0}
 .srch input{width:100%;padding:5px 8px 5px 26px;border:1px solid #e8e8e8;border-radius:5px;font-size:12px;background:#f8f8f8;outline:none;color:#333}
 .srch input:focus{border-color:#18a0fb;background:#fff}
 .srch-wrap{position:relative}
 .srch-ico{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:#aaa;pointer-events:none}
+.srch-row{display:flex;gap:6px;align-items:center}
+.srch-row .srch-wrap{flex:1}
+.srch-add{flex-shrink:0;width:28px;height:28px;border:none;border-radius:6px;background:#18a0fb;color:#fff;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.srch-add:hover{background:#0d8de8}
+/* Add-entry modal (popup) */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:#fff;border-radius:10px;width:100%;max-width:320px;box-shadow:0 10px 34px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column}
+.modal-hd{padding:12px 14px;font-size:13px;font-weight:700;color:#1a1a1a;border-bottom:1px solid #f0f0f0}
+.modal-bd{padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+.modal-bd input,.modal-bd textarea{width:100%;padding:7px 9px;border:1px solid #e0e0e0;border-radius:5px;font-size:12px;outline:none;box-sizing:border-box;font-family:inherit}
+.modal-bd input:focus,.modal-bd textarea:focus{border-color:#18a0fb}
+.modal-bd textarea{resize:vertical;min-height:80px;line-height:1.4}
+.modal-bd .af-hint{font-size:10px;color:#aaa;line-height:1.4}
+.modal-ft{padding:10px 14px;display:flex;gap:8px;border-top:1px solid #f0f0f0}
+.af-save{flex:1;padding:8px;background:#18a0fb;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.af-save:disabled{background:#b9ddf7;cursor:default}
+.af-cancel{flex-shrink:0;padding:8px 14px;background:#f0f0f0;color:#666;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+.fi-badge{font-size:9px;color:#18a0fb;background:#eef7ff;border-radius:3px;padding:1px 4px;flex-shrink:0;margin-left:4px}
 /* Section */
 .sec-hd{font-size:11px;font-weight:600;color:#888;padding:8px 10px 4px;border-bottom:1px solid #f5f5f5}
+.grp-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;font-weight:700;color:#999;padding:9px 10px 4px;background:#fafafa;border-bottom:1px solid #f0f0f0;letter-spacing:.3px}
+.grp-hd .num-check{font-weight:500;color:#666}
 /* Field item */
 .fi{display:flex;align-items:center;padding:7px 10px;cursor:pointer;gap:5px;border-bottom:1px solid #f8f8f8}
 .fi:hover{background:#f5fbff}
@@ -44,6 +65,8 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 .num-row input:focus{border-color:#18a0fb}
 .num-row span{font-size:11px;color:#aaa}
 .num-apply{margin-top:4px;padding:8px;background:#18a0fb;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;width:100%}
+.num-check{display:flex;align-items:center;gap:6px;font-size:11px;color:#666;font-weight:500;cursor:pointer;user-select:none}
+.num-check input{width:14px;height:14px;margin:0;cursor:pointer;accent-color:#18a0fb}
 .num-apply:hover{background:#0d8de8}
 .num-fmt{padding:6px 10px;font-size:11px;color:#aaa;border-bottom:1px solid #f5f5f5}
 /* Custom tab */
@@ -117,6 +140,19 @@ let includeBlank = false;
 let selCount = 0;
 let customLists = [];
 let searchQ = '';
+let customMoney = false;
+let customWon = false;
+let showWon = true;
+
+// ─── Shared entries (Supabase) ────────────────────────────
+// 여기에 본인 Supabase 값을 넣으세요. 비워두면 '추가' 기능은 비활성.
+const SUPABASE_URL  = 'https://dcgovdquosxedbmyjypd.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjZ292ZHF1b3N4ZWRibXlqeXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMDYwNTIsImV4cCI6MjEwMjc4MjA1Mn0.xqJUXR6MPClzF2Bjljc7Lpz7a1oXUuehmfvTu3lVg7k';
+let sharedEntries = [];    // [{id,label,values:[...]}]
+let showAddForm = false;
+let addBusy = false;
+let addLabel = '';
+let addValues = '';
 
 // ─── Text Data ───────────────────────────────────────────
 const TEXT = [
@@ -310,65 +346,91 @@ function render(){
 
 // ─── Text Tab ─────────────────────────────────────────────
 function renderText(){
-  // Build left panel
-  let lhtml='';
-  TEXT.forEach(g=>{
-    lhtml+=`<div class="lg">${g.g}</div>`;
-    g.subs.forEach(s=>{
-      lhtml+=`<div class="li${s.key===textView?' on':''}" onclick="setTextView('${s.key}')">${s.name}</div>`;
-    });
+  // Flat list — no folder grouping. Search bar (+ 추가 버튼) + all fields in one continuous list.
+  const addBtn = SUPABASE_URL ? `<button type="button" class="srch-add" title="공유 항목 추가" onclick="openAddForm()">＋</button>` : '';
+  let rhtml=`<div class="srch"><div class="srch-row"><div class="srch-wrap"><span class="srch-ico">🔍</span><input type="text" placeholder="검색어를 입력하세요" value="${searchQ}" oninput="onSearch(this.value)" id="srchInput"/></div>${addBtn}</div></div>`;
+
+  let found=false;
+  TEXT.forEach(g=>g.subs.forEach(s=>s.fields.forEach(f=>{
+    if(searchQ && !(f.lbl.includes(searchQ)||f.v.some(v=>v.includes(searchQ)))) return;
+    rhtml+=`<div class="fi" onclick='applyItems(${JSON.stringify(f.v)})'><span class="fi-tag">#</span><span class="fi-lbl">${f.lbl}</span><span class="fi-pre">${f.v.slice(0,3).join(', ')}</span></div>`;
+    found=true;
+  })));
+  // 공유 항목 (Supabase)
+  sharedEntries.forEach(e=>{
+    if(searchQ && !(e.label.includes(searchQ)||(e.values||[]).some(v=>v.includes(searchQ)))) return;
+    rhtml+=`<div class="fi" onclick='applyItems(${JSON.stringify(e.values||[])})'><span class="fi-tag">#</span><span class="fi-lbl">${esc(e.label)}</span><span class="fi-badge">공유</span><span class="fi-pre">${esc((e.values||[]).slice(0,3).join(', '))}</span></div>`;
+    found=true;
   });
+  if(!found) rhtml+=`<div class="ct-empty">${searchQ?'검색 결과가 없습니다.':'항목이 없습니다.'}</div>`;
 
-  // Build right panel
-  let rhtml=`<div class="srch"><div class="srch-wrap"><span class="srch-ico">🔍</span><input type="text" placeholder="검색어를 입력하세요" value="${searchQ}" oninput="onSearch(this.value)" id="srchInput"/></div></div>`;
-
-  if(searchQ){
-    // Search across all
-    let found=false;
-    TEXT.forEach(g=>g.subs.forEach(s=>s.fields.forEach(f=>{
-      if(f.lbl.includes(searchQ)||f.v.some(v=>v.includes(searchQ))){
-        rhtml+=`<div class="fi" onclick='applyItems(${JSON.stringify(f.v)})'><span class="fi-tag">#</span><span class="fi-lbl">${f.lbl}</span><span class="fi-pre">${f.v.slice(0,3).join(', ')}</span></div>`;
-        found=true;
-      }
-    })));
-    if(!found) rhtml+='<div class="ct-empty">검색 결과가 없습니다.</div>';
-  } else {
-    // Find current sub
-    let sub=null;
-    TEXT.forEach(g=>g.subs.forEach(s=>{if(s.key===textView)sub=s;}));
-    if(sub){
-      rhtml+=`<div class="sec-hd">${sub.name}</div>`;
-      sub.fields.forEach(f=>{
-        rhtml+=`<div class="fi" onclick='applyItems(${JSON.stringify(f.v)})'><span class="fi-tag">#</span><span class="fi-lbl">${f.lbl}</span><span class="fi-pre">${f.v.slice(0,3).join(', ')}</span></div>`;
-      });
-    }
+  let modal='';
+  if(showAddForm){
+    modal=`<div class="modal-backdrop" onclick="if(event.target===this)closeAddForm()">
+      <div class="modal">
+        <div class="modal-hd">공유 항목 추가</div>
+        <div class="modal-bd">
+          <input type="text" id="afLabel" placeholder="항목 이름 (예: 부서명)" value="${esc(addLabel)}"/>
+          <textarea id="afValues" placeholder="값을 줄바꿈으로 구분해 입력&#10;예)&#10;기획팀&#10;디자인팀&#10;개발팀">${esc(addValues)}</textarea>
+          <div class="af-hint">누구나 추가할 수 있고 모두에게 공유됩니다. (삭제는 관리자만)</div>
+        </div>
+        <div class="modal-ft">
+          <button type="button" class="af-cancel" onclick="closeAddForm()">취소</button>
+          <button type="button" class="af-save" id="afSave" ${addBusy?'disabled':''} onclick="submitAddEntry()">${addBusy?'저장 중…':'저장'}</button>
+        </div>
+      </div>
+    </div>`;
   }
 
-  return `<div class="lp">${lhtml}</div><div class="rp">${rhtml}</div>`;
+  return `<div class="rp rp-full">${rhtml}</div>${modal}`;
 }
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openAddForm(){showAddForm=true;addLabel='';addValues='';render();setTimeout(()=>{const el=document.getElementById('afLabel');if(el)el.focus();},0);}
+function closeAddForm(){showAddForm=false;render();}
 
 function setTextView(k){textView=k;searchQ='';render();}
 function onSearch(v){searchQ=v;render();setTimeout(()=>{const el=document.getElementById('srchInput');if(el){el.focus();el.setSelectionRange(v.length,v.length);}},0);}
 
+// ─── Supabase: shared entries ─────────────────────────────
+function sbHeaders(){return{apikey:SUPABASE_ANON,Authorization:'Bearer '+SUPABASE_ANON,'Content-Type':'application/json'};}
+async function loadSharedEntries(){
+  if(!SUPABASE_URL||!SUPABASE_ANON)return;
+  try{
+    const res=await fetch(SUPABASE_URL+'/rest/v1/shared_entries?select=id,label,values&order=created_at.desc',{headers:sbHeaders()});
+    if(!res.ok)return;
+    const rows=await res.json();
+    sharedEntries=rows.map(r=>({id:r.id,label:r.label,values:Array.isArray(r.values)?r.values:[]}));
+    if(tab==='text')render();
+  }catch(e){/* 오프라인/미설정이면 무시 */}
+}
+async function submitAddEntry(){
+  if(addBusy)return;
+  const label=(document.getElementById('afLabel').value||'').trim();
+  const raw=(document.getElementById('afValues').value||'').trim();
+  const values=raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  addLabel=label;addValues=raw; // 저장 중 re-render 시 입력 유지
+  if(!label){alert('항목 이름을 입력하세요.');return;}
+  if(values.length===0){alert('값을 한 줄에 하나씩 입력하세요.');return;}
+  addBusy=true;render();
+  try{
+    const res=await fetch(SUPABASE_URL+'/rest/v1/shared_entries',{
+      method:'POST',headers:Object.assign(sbHeaders(),{Prefer:'return=representation'}),
+      body:JSON.stringify({label,values})
+    });
+    if(!res.ok){const t=await res.text();throw new Error(t||res.status);}
+    addBusy=false;showAddForm=false;addLabel='';addValues='';
+    await loadSharedEntries();
+    render();
+  }catch(e){
+    addBusy=false;render();
+    alert('추가에 실패했습니다.\n'+(e&&e.message?e.message:e));
+  }
+}
+
 // ─── Number Tab ───────────────────────────────────────────
 function renderNumber(){
-  let lhtml='';
-  NUM.forEach(g=>{
-    const on=g.key===numView?' on':'';
-    if(g.isCustom){
-      lhtml+=`<div class="lg">커스텀</div><div class="li${on}" onclick="setNumView('custom')">커스텀 숫자</div>`;
-    } else {
-      lhtml+=`<div class="lg">${g.g}</div>`;
-      g.items.forEach((item,i)=>{
-        const k=g.key+'_'+i;
-        lhtml+=`<div class="li${k===numView?' on':''}" onclick="setNumView('${k}')">${item.lbl}</div>`;
-      });
-    }
-  });
-
-  let rhtml='';
-  if(numView==='custom'){
-    rhtml=`<div class="sec-hd">커스텀 숫자</div>
+  // Flat list — no left folder nav. Custom form on top, groups divided by titles only.
+  let rhtml=`<div class="grp-hd">커스텀 숫자</div>
     <div class="num-custom">
       <label>숫자 범위</label>
       <div class="num-row">
@@ -381,70 +443,69 @@ function renderNumber(){
         <input type="number" id="nDec" placeholder="0" value="0" min="0" max="4"/>
         <span>자리</span>
       </div>
+      <label class="num-check"><input type="checkbox" id="nMoney" ${customMoney?'checked':''} onchange="customMoney=this.checked"/> 금액 (천 단위 콤마)</label>
+      <label class="num-check"><input type="checkbox" id="nWon" ${customWon?'checked':''} onchange="customWon=this.checked"/> 원 붙이기</label>
       <button class="num-apply" onclick="applyCustomNum()">적용</button>
     </div>`;
-  } else {
-    let found=null;
-    NUM.forEach(g=>{if(g.items)g.items.forEach((item,i)=>{if(g.key+'_'+i===numView)found=item;});});
-    if(found){
-      rhtml=`<div class="sec-hd">${found.lbl}</div>
-      <div class="num-fmt">${found.fmt}</div>
-      <div class="fi" onclick="applyItems(gen100(()=>'${found.lbl}'))">
-        <span class="fi-tag">#</span>
-        <span class="fi-lbl">${found.lbl}</span>
-        <span class="fi-pre">${found.gen()}, ${found.gen()}, ${found.gen()}</span>
-      </div>`;
-      // Bind properly
-      rhtml=`<div class="sec-hd">${found.lbl}</div>
-      <div class="num-fmt">${found.fmt}</div>
-      <div class="fi" id="numApplyItem">
-        <span class="fi-tag">#</span>
-        <span class="fi-lbl">${found.lbl}</span>
-        <span class="fi-pre">${found.gen()}, ${found.gen()}</span>
-      </div>`;
-    }
-  }
 
-  return `<div class="lp">${lhtml}</div><div class="rp">${rhtml}</div>`;
+  NUM.forEach(g=>{
+    if(g.isCustom||!g.items) return;
+    const isPrice=g.key==='price';
+    const wonToggle=isPrice?`<label class="num-check"><input type="checkbox" ${showWon?'checked':''} onchange="showWon=this.checked;render()"/> '원' 표시</label>`:'';
+    rhtml+=`<div class="grp-hd"><span>${g.g}</span>${wonToggle}</div>`;
+    g.items.forEach((item,i)=>{
+      const g0=()=>{const s=String(item.gen());return showWon?s:s.replace(/원$/,'');};
+      rhtml+=`<div class="fi" onclick="applyNumItem('${g.key}',${i})"><span class="fi-tag">#</span><span class="fi-lbl">${item.lbl}</span><span class="fi-pre">${g0()}, ${g0()}</span></div>`;
+    });
+  });
+
+  return `<div class="rp rp-full">${rhtml}</div>`;
 }
 
+function applyNumItem(gkey,idx){
+  let it=null;
+  NUM.forEach(g=>{if(g.key===gkey&&g.items&&g.items[idx])it=g.items[idx];});
+  if(!it)return;
+  applyItems(gen100(()=>{const s=String(it.gen());return showWon?s:s.replace(/원$/,'');}));
+}
 function setNumView(k){numView=k;render();}
 function applyCustomNum(){
   const mn=parseFloat(document.getElementById('nMin').value)||0;
   const mx=parseFloat(document.getElementById('nMax').value)||100;
   const dec=parseInt(document.getElementById('nDec').value)||0;
+  const money=document.getElementById('nMoney').checked;
+  const won=document.getElementById('nWon').checked;
+  customMoney=money;customWon=won;
   if(mn>=mx){alert('최댓값이 최솟값보다 커야 합니다.');return;}
-  const items=gen100(()=>(Math.random()*(mx-mn)+mn).toFixed(dec));
+  const suffix=won?'원':'';
+  const items=gen100(()=>{
+    const n=(Math.random()*(mx-mn)+mn).toFixed(dec);
+    const s=money?parseFloat(n).toLocaleString('ko-KR',{minimumFractionDigits:dec,maximumFractionDigits:dec}):n;
+    return s+suffix;
+  });
   applyItems(items);
 }
 
 // ─── Date Tab ─────────────────────────────────────────────
 function renderDate(){
-  let lhtml='';
+  // Flat list — no left folder nav. Groups divided by titles only.
+  let rhtml='';
   DATE.forEach(g=>{
-    lhtml+=`<div class="lg">${g.g}</div>`;
+    if(!g.items) return;
+    rhtml+=`<div class="grp-hd"><span>${g.g}</span></div>`;
     g.items.forEach((item,i)=>{
-      const k=g.key+'_'+i;
-      lhtml+=`<div class="li${k===dateView?' on':''}" onclick="setDateView('${k}')">${item.lbl}</div>`;
+      rhtml+=`<div class="fi" onclick="applyDateItem('${g.key}',${i})"><span class="fi-tag">#</span><span class="fi-lbl">${item.lbl}</span><span class="fi-pre">${item.gen()}</span></div>`;
     });
   });
-
-  let rhtml='';
-  let found=null;
-  DATE.forEach(g=>g.items.forEach((item,i)=>{if(g.key+'_'+i===dateView)found={g,item};}));
-  if(found){
-    rhtml=`<div class="sec-hd">${found.g.g}</div>
-    <div class="num-fmt">${found.item.fmt}</div>
-    <div class="fi" id="dateApplyItem">
-      <span class="fi-tag">#</span>
-      <span class="fi-lbl">${found.item.lbl}</span>
-      <span class="fi-pre">${found.item.gen()}</span>
-    </div>`;
-  }
-
-  return `<div class="lp">${lhtml}</div><div class="rp">${rhtml}</div>`;
+  return `<div class="rp rp-full">${rhtml}</div>`;
 }
 
+function applyDateItem(gkey,idx){
+  let it=null;
+  DATE.forEach(g=>{if(g.key===gkey&&g.items&&g.items[idx])it=g.items[idx];});
+  if(!it)return;
+  applyItems(gen100(it.gen));
+}
 function setDateView(k){dateView=k;render();}
 
 // ─── Custom Tab ───────────────────────────────────────────
@@ -542,7 +603,7 @@ function bindEvents(){
   if(numItem){
     let found=null;
     NUM.forEach(g=>{if(g.items)g.items.forEach((item,i)=>{if(g.key+'_'+i===numView)found=item;});});
-    if(found) numItem.onclick=()=>applyItems(gen100(found.gen));
+    if(found) numItem.onclick=()=>applyItems(gen100(()=>{const s=String(found.gen());return showWon?s:s.replace(/원$/,'');}));
   }
   // Date tab: bind apply item
   const dateItem=document.getElementById('dateApplyItem');
@@ -621,6 +682,7 @@ window.onmessage=e=>{
 parent.postMessage({pluginMessage:{type:'load-lists'}},'*');
 parent.postMessage({pluginMessage:{type:'get-selection'}},'*');
 loadRemoteData();
+loadSharedEntries();
 parent.postMessage({pluginMessage:{type:'get-selection'}},'*');
 
 // Initial render
