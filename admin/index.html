@@ -719,14 +719,14 @@ function renderMain() {
     main.innerHTML=data.number.map(g=>{
       const activeIdx=numTabState[g.key]||0;
       const item=g.items[activeIdx]||g.items[0];
-      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setNumTab('${g.key}',${i})">${esc(it.lbl)}</button><button class="item-tab-del" onclick="event.stopPropagation();delNumItem('${g.key}',${i})" title="삭제">×</button></span>`).join('')+`<button class="item-tab item-tab-add" onclick="addNumItem('${g.key}')" title="항목 추가">+</button>`;
+      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setNumTab('${g.key}',${i})">${esc(it.lbl)}</button>${it.custom?`<button class="item-tab-del" onclick="event.stopPropagation();delNumItem('${g.key}',${i})" title="삭제">×</button>`:''}</span>`).join('')+`<button class="item-tab item-tab-add" onclick="addNumItem('${g.key}')" title="항목 추가">+</button>`;
       return `<div class="panel" id="numpanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="num-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">최솟값</label><input class="inp" type="number" value="${item.min}" onchange="updateNumItem('${g.key}',${activeIdx},'min',parseFloat(this.value))"/></div><div><label class="lbl">최댓값</label><input class="inp" type="number" value="${item.max}" onchange="updateNumItem('${g.key}',${activeIdx},'max',parseFloat(this.value))"/></div><div><label class="lbl">소수점</label><input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('${g.key}',${activeIdx},'dec',parseInt(this.value))"/></div><div><label class="lbl">단위 (접미사)</label><input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('${g.key}',${activeIdx},'suffix',this.value)" placeholder="원, kg, %"/></div><div class="full"><label class="lbl">천 단위 콤마</label><select class="inp" onchange="updateNumItem('${g.key}',${activeIdx},'thousands',this.value==='true')"><option value="false"${!item.thousands?' selected':''}>없음</option><option value="true"${item.thousands?' selected':''}>있음 (1,000)</option></select></div></div></div></div>`;
     }).join('');
   } else if(selection.type==='date'){
     main.innerHTML=data.date.map(g=>{
       const activeIdx=dateTabState[g.key]||0;
       const item=g.items[activeIdx]||g.items[0];
-      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setDateTab('${g.key}',${i})">${esc(it.lbl)}</button><button class="item-tab-del" onclick="event.stopPropagation();delDateItem('${g.key}',${i})" title="삭제">×</button></span>`).join('')+`<button class="item-tab item-tab-add" onclick="addDateItem('${g.key}')" title="항목 추가">+</button>`;
+      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setDateTab('${g.key}',${i})">${esc(it.lbl)}</button>${it.custom?`<button class="item-tab-del" onclick="event.stopPropagation();delDateItem('${g.key}',${i})" title="삭제">×</button>`:''}</span>`).join('')+`<button class="item-tab item-tab-add" onclick="addDateItem('${g.key}')" title="항목 추가">+</button>`;
       return `<div class="panel" id="datepanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="date-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateDateItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateDateItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">패턴</label><input class="inp" value="${esc(item.pattern)}" onchange="updateDateItem('${g.key}',${activeIdx},'pattern',this.value)"/><div class="hint">YYYY YY MM M DD D HH mm SS AP hh DAY_KO DAY_SHORT DAY_EN</div></div></div></div></div>`;
     }).join('');
   }
@@ -751,7 +751,7 @@ function updateDateItem(gKey,idx,key,val){const g=data.date.find(x=>x.key===gKey
 function addNumItem(gKey){
   const g=data.number.find(x=>x.key===gKey);
   if(!g)return;
-  g.items.push({lbl:'새 항목',fmt:'',min:0,max:100,dec:0,suffix:'',thousands:false});
+  g.items.push({lbl:'새 항목',fmt:'',min:0,max:100,dec:0,suffix:'',thousands:false,custom:true});
   numTabState[gKey]=g.items.length-1;
   markDirty(); renderMain();
   focusNewItem('numpanel_'+gKey);
@@ -759,7 +759,7 @@ function addNumItem(gKey){
 function addDateItem(gKey){
   const g=data.date.find(x=>x.key===gKey);
   if(!g)return;
-  g.items.push({lbl:'새 항목',fmt:'',pattern:''});
+  g.items.push({lbl:'새 항목',fmt:'',pattern:'',custom:true});
   dateTabState[gKey]=g.items.length-1;
   markDirty(); renderMain();
   focusNewItem('datepanel_'+gKey);
@@ -775,8 +775,8 @@ function focusNewItem(panelId){
 }
 function delNumItem(gKey,idx){
   const g=data.number.find(x=>x.key===gKey);
-  if(!g)return;
-  if(g.items.length<=1){toast('최소 1개 항목은 있어야 합니다.');return;}
+  if(!g||!g.items[idx])return;
+  if(!g.items[idx].custom){toast('기본 제공 항목은 삭제할 수 없습니다.');return;}
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
   g.items.splice(idx,1);
   let cur=numTabState[gKey]||0;
@@ -786,8 +786,8 @@ function delNumItem(gKey,idx){
 }
 function delDateItem(gKey,idx){
   const g=data.date.find(x=>x.key===gKey);
-  if(!g)return;
-  if(g.items.length<=1){toast('최소 1개 항목은 있어야 합니다.');return;}
+  if(!g||!g.items[idx])return;
+  if(!g.items[idx].custom){toast('기본 제공 항목은 삭제할 수 없습니다.');return;}
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
   g.items.splice(idx,1);
   let cur=dateTabState[gKey]||0;
