@@ -79,9 +79,10 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
 .item-tab{padding:9px 2px 9px 12px;border:none;background:none;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit}
 .item-tab:hover{color:#18a0fb}
 .item-tab-wrap.on .item-tab{color:#18a0fb;font-weight:600}
-.item-tab-del{padding:2px 8px 2px 2px;border:none;background:none;color:#ccc;cursor:pointer;font-size:13px;line-height:1}
-.item-tab-del:hover{color:#e53935}
-.item-tab-add{padding:9px 12px;border:none;background:none;cursor:pointer;color:#18a0fb;font-weight:700;font-size:14px;font-family:inherit}
+.item-tab-del{padding:2px 7px;margin:0 6px 0 2px;border:none;border-radius:5px;background:#f0f0f0;color:#999;cursor:pointer;font-size:12px;line-height:1.6}
+.item-tab-del:hover{background:#fde8e8;color:#e53935}
+.item-tab-add{padding:5px 10px;margin:8px 0;border:none;border-radius:6px;background:#eef7ff;cursor:pointer;color:#18a0fb;font-weight:700;font-size:13px;font-family:inherit}
+.item-tab-add:hover{background:#dcefff}
 .date-editor{display:flex;flex-direction:column;gap:10px}
 .add-field-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed #d0d0d0;border-radius:8px;color:#aaa;font-size:13px;cursor:pointer;transition:all .15s;background:none;width:100%}
 .add-field-btn:hover{border-color:#18a0fb;color:#18a0fb;background:#f5fbff}
@@ -692,7 +693,7 @@ function renderMain() {
         <div class="field-hd" onclick="toggleField(${fi})">
           <span class="field-tag">#</span><span class="field-lbl">${f.lbl||'(이름 없음)'}</span>
           <span class="field-cnt">${f.v.length}개</span>
-          ${editable?`<button class="btn sm danger" onclick="event.stopPropagation();delField(${fi})" style="margin-left:8px">삭제</button>`:''}
+          ${editable&&f.custom?`<button class="btn sm danger" onclick="event.stopPropagation();delField(${fi})" style="margin-left:8px">삭제</button>`:''}
         </div>
         <div class="field-body" id="fb_${fi}">
           ${editable?`
@@ -734,10 +735,14 @@ function renderMain() {
 
 function toggleField(fi){const fb=document.getElementById('fb_'+fi);if(fb)fb.classList.toggle('open');}
 function updateField(fi,key,val){if(key==='v')data.text[fi].v=val.split('\n').map(s=>s.trim()).filter(s=>s);else data.text[fi][key]=val;markDirty();renderSidebar();}
-function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;data.text.splice(fi,1);markDirty();renderMain();}
+function delField(fi){
+  if(!data.text[fi].custom){toast('기본 제공 필드는 삭제할 수 없습니다.');return;}
+  if(!confirm('이 필드를 삭제하시겠습니까?'))return;
+  data.text.splice(fi,1);markDirty();renderMain();
+}
 
 function addField(){
-  data.text.unshift({id:'field_'+Date.now(),lbl:'',v:[]});
+  data.text.unshift({id:'field_'+Date.now(),lbl:'',v:[],custom:true});
   markDirty(); renderMain();
   const m=document.getElementById('main');
   if(m)m.scrollTop=0;
