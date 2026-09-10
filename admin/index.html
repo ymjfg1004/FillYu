@@ -40,15 +40,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sb-add{padding:8px;border-top:1px solid #f0f0f0;flex-shrink:0}
 
 /* Tree */
-.tree-g{margin-bottom:2px}
-.tree-g-hd{display:flex;align-items:center;padding:5px 8px 5px 10px;cursor:pointer;gap:4px}
-.tree-g-hd:hover{background:#f5f5f5;border-radius:5px}
-.tree-arrow{font-size:10px;color:#ccc;width:12px;transition:transform .15s}
-.tree-arrow.open{transform:rotate(90deg)}
-.tree-g-name{font-size:12px;font-weight:600;color:#666;flex:1}
-.tree-g-del{opacity:0;font-size:14px;color:#ccc;cursor:pointer;padding:0 2px;border:none;background:none;line-height:1}
-.tree-g-hd:hover .tree-g-del{opacity:1}
-.tree-g-del:hover{color:#e53935}
 .tree-subs{padding-left:8px}
 .tree-sub{display:flex;align-items:center;padding:5px 8px 5px 12px;cursor:pointer;border-radius:5px;border-left:2px solid transparent;gap:4px}
 .tree-sub:hover{background:#f5f8ff}
@@ -213,40 +204,6 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('settingsModal')">취소</button>
       <button class="btn primary" onclick="connectGitHub()">연결 및 불러오기</button>
-    </div>
-  </div>
-</div>
-
-<!-- 그룹 추가 -->
-<div class="overlay" id="addGroupModal">
-  <div class="modal">
-    <div class="modal-title">그룹 추가</div>
-    <div>
-      <label class="lbl">그룹 이름</label>
-      <input class="inp" id="newGroupName" placeholder="예: 의료/헬스"/>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('addGroupModal')">취소</button>
-      <button class="btn primary" onclick="confirmAddGroup()">추가</button>
-    </div>
-  </div>
-</div>
-
-<!-- 서브카테고리 추가 -->
-<div class="overlay" id="addSubModal">
-  <div class="modal">
-    <div class="modal-title">서브카테고리 추가</div>
-    <div>
-      <label class="lbl">그룹</label>
-      <select class="inp" id="addSubGroup"></select>
-    </div>
-    <div>
-      <label class="lbl">카테고리 이름</label>
-      <input class="inp" id="newSubName" placeholder="예: 병원 정보"/>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('addSubModal')">취소</button>
-      <button class="btn primary" onclick="confirmAddSub()">추가</button>
     </div>
   </div>
 </div>
@@ -634,7 +591,6 @@ let data = null;
 let fileSha = '';
 let selection = null;
 let dirty = false;
-let expandedGroups = {};
 let _saving = false;
 
 async function ghFetch(url, opts={}) {
@@ -720,20 +676,14 @@ function renderSidebar() {
 
   // ── 텍스트 ──
   html+=`<div class="sb-section-hd">텍스트</div>`;
-  data.text.forEach(g=>{
-    const open=expandedGroups[g.key]!==false;
-    const editBtn=canEdit()?`<button class="tree-g-del" onclick="event.stopPropagation();delGroup('${g.key}')">×</button>`:'';
-    const dblclick=canEdit()?`ondblclick="event.stopPropagation();renameGroupInline('${g.key}',this)" title="더블클릭으로 수정"`:'';
-    html+=`<div class="tree-g"><div class="tree-g-hd" onclick="toggleGroup('${g.key}')"><span class="tree-arrow${open?' open':''}">▶</span><span class="tree-g-name" ${dblclick}>${g.g}</span>${editBtn}</div>`;
-    if(open){
-      html+=`<div class="tree-subs">`;
-      g.subs.forEach(s=>{const on=selection&&selection.subKey===s.key?' on':'';const delBtn=canEdit()?`<button class="tree-sub-del" onclick="event.stopPropagation();delSub('${g.key}','${s.key}')">×</button>`:'';html+=`<div class="tree-sub${on}" onclick="selectSub('${g.key}','${s.key}')"><span class="tree-sub-name">${s.name}</span>${delBtn}</div>`;});
-      if(canEdit())html+=`<div class="inline-add"><input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline('${g.key}',this.value,this)"/><button class="btn sm" onclick="addSubInline('${g.key}',this.previousElementSibling.value,this.previousElementSibling)">+</button></div>`;
-      html+=`</div>`;
-    }
-    html+='</div>';
+  html+=`<div class="tree-subs">`;
+  data.text.forEach(s=>{
+    const on=selection&&selection.subKey===s.key?' on':'';
+    const delBtn=canEdit()?`<button class="tree-sub-del" onclick="event.stopPropagation();delSub('${s.key}')">×</button>`:'';
+    html+=`<div class="tree-sub${on}" onclick="selectSub('${s.key}')"><span class="tree-sub-name">${esc(s.name)}</span>${delBtn}</div>`;
   });
-  if(canEdit()) html+=`<div style="padding:4px 8px 8px"><button class="btn" style="width:100%;font-size:11px" onclick="openAddGroup()">+ 그룹 추가</button></div>`;
+  if(canEdit())html+=`<div class="inline-add"><input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline(this.value,this)"/><button class="btn sm" onclick="addSubInline(this.previousElementSibling.value,this.previousElementSibling)">+</button></div>`;
+  html+=`</div>`;
 
   // ── 숫자 ──
   html+=`<div class="sb-section-hd" style="margin-top:4px">숫자</div>`;
@@ -753,8 +703,7 @@ function renderSidebar() {
   addBar.innerHTML='';
 }
 
-function toggleGroup(key){expandedGroups[key]=expandedGroups[key]===false?true:false;renderSidebar();}
-function selectSub(gKey,sKey){selection={type:'text',groupKey:gKey,subKey:sKey};renderSidebar();renderMain();}
+function selectSub(sKey){selection={type:'text',subKey:sKey};renderSidebar();renderMain();}
 function selectNumItem(gKey,idx){selection={type:'number',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
 function selectDateItem(gKey,idx){selection={type:'date',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
 
@@ -764,8 +713,7 @@ function renderMain() {
   const editable=canEdit();
   if(!data||!selection){main.innerHTML='<div class="main-empty">← 왼쪽에서 항목을 선택하세요</div>';return;}
   if(selection.type==='text'){
-    const g=data.text.find(x=>x.key===selection.groupKey);
-    const sub=g&&g.subs.find(s=>s.key===selection.subKey);
+    const sub=data.text.find(s=>s.key===selection.subKey);
     if(!sub){main.innerHTML='<div class="main-empty">항목을 찾을 수 없습니다</div>';return;}
     const fieldsHtml=sub.fields.map((f,fi)=>`
       <div class="field-row" id="field_${fi}">
@@ -794,7 +742,7 @@ function renderMain() {
           `}
         </div>
       </div>`).join('');
-    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">${g.g} / ${sub.name}</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div>${editable?`<button class="btn sm" onclick="renameSub()">이름 수정</button>`:''}</div><div class="panel-body">${fieldsHtml}${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}</div></div>`;
+    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">${esc(sub.name)}</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div>${editable?`<button class="btn sm" onclick="renameSub()">이름 수정</button>`:''}</div><div class="panel-body">${fieldsHtml}${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}</div></div>`;
   } else if(selection.type==='number'){
     const g=data.number.find(x=>x.key===selection.groupKey);
     const item=g&&g.items[selection.itemIdx];
@@ -809,12 +757,11 @@ function renderMain() {
 }
 
 function toggleField(fi){const fb=document.getElementById('fb_'+fi);if(fb)fb.classList.toggle('open');}
-function updateField(fi,key,val){const g=data.text.find(x=>x.key===selection.groupKey);const sub=g&&g.subs.find(s=>s.key===selection.subKey);if(!sub)return;if(key==='v')sub.fields[fi].v=val.split('\n').map(s=>s.trim()).filter(s=>s);else sub.fields[fi][key]=val;markDirty();renderSidebar();}
-function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;const g=data.text.find(x=>x.key===selection.groupKey);const sub=g&&g.subs.find(s=>s.key===selection.subKey);if(!sub)return;sub.fields.splice(fi,1);markDirty();renderMain();}
+function updateField(fi,key,val){const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;if(key==='v')sub.fields[fi].v=val.split('\n').map(s=>s.trim()).filter(s=>s);else sub.fields[fi][key]=val;markDirty();renderSidebar();}
+function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;sub.fields.splice(fi,1);markDirty();renderMain();}
 
 function addField(){
-  const g=data.text.find(x=>x.key===selection.groupKey);
-  const sub=g&&g.subs.find(s=>s.key===selection.subKey);
+  const sub=data.text.find(s=>s.key===selection.subKey);
   if(!sub)return;
   sub.fields.push({id:'field_'+Date.now(),lbl:'',v:[]});
   markDirty(); renderMain();
@@ -824,23 +771,9 @@ function addField(){
   setTimeout(()=>{const m=document.getElementById('main');if(m)m.scrollTop=m.scrollHeight;},50);
 }
 
-function renameSub(){const g=data.text.find(x=>x.key===selection.groupKey);const sub=g&&g.subs.find(s=>s.key===selection.subKey);if(!sub)return;const name=prompt('새 이름:',sub.name);if(!name)return;sub.name=name;markDirty();renderSidebar();renderMain();}
-function delSub(gKey,sKey){if(!confirm('이 카테고리를 삭제하시겠습니까?'))return;const g=data.text.find(x=>x.key===gKey);if(!g)return;g.subs=g.subs.filter(s=>s.key!==sKey);if(selection&&selection.subKey===sKey)selection=null;markDirty();renderSidebar();renderMain();}
-
-function renameGroupInline(gKey,el){
-  const g=data.text.find(x=>x.key===gKey);if(!g)return;
-  const prev=g.g;
-  const input=document.createElement('input');
-  input.value=prev;input.style.cssText='font-size:12px;font-weight:600;color:#333;border:1px solid #18a0fb;border-radius:4px;padding:1px 6px;width:110px;outline:none;background:#fff';
-  el.replaceWith(input);input.focus();input.select();
-  const done=()=>{const val=input.value.trim()||prev;g.g=val;const span=document.createElement('span');span.className='tree-g-name';span.title='더블클릭으로 수정';span.textContent=val;span.ondblclick=(e)=>{e.stopPropagation();renameGroupInline(gKey,span);};input.replaceWith(span);if(val!==prev)markDirty();};
-  input.onblur=done;input.onkeydown=(e)=>{if(e.key==='Enter')done();if(e.key==='Escape'){input.value=prev;done();}};
-}
-
-function delGroup(gKey){if(!confirm('이 그룹 전체를 삭제하시겠습니까?'))return;data.text=data.text.filter(g=>g.key!==gKey);if(selection&&selection.groupKey===gKey)selection=null;markDirty();renderSidebar();renderMain();}
-function openAddGroup(){document.getElementById('newGroupName').value='';document.getElementById('addGroupModal').classList.add('open');}
-function confirmAddGroup(){const name=document.getElementById('newGroupName').value.trim();if(!name)return;const key='g_'+Date.now();data.text.push({g:name,key,subs:[]});expandedGroups[key]=true;markDirty();closeModal('addGroupModal');renderSidebar();}
-function addSubInline(gKey,name,input){if(!name||!name.trim())return;const g=data.text.find(x=>x.key===gKey);if(!g)return;const key='s_'+Date.now();g.subs.push({name:name.trim(),key,fields:[]});input.value='';markDirty();selection={type:'text',groupKey:gKey,subKey:key};renderSidebar();renderMain();}
+function renameSub(){const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;const name=prompt('새 이름:',sub.name);if(!name)return;sub.name=name;markDirty();renderSidebar();renderMain();}
+function delSub(sKey){if(!confirm('이 카테고리를 삭제하시겠습니까?'))return;data.text=data.text.filter(s=>s.key!==sKey);if(selection&&selection.subKey===sKey)selection=null;markDirty();renderSidebar();renderMain();}
+function addSubInline(name,input){if(!name||!name.trim())return;const key='s_'+Date.now();data.text.push({name:name.trim(),key,fields:[]});input.value='';markDirty();selection={type:'text',subKey:key};renderSidebar();renderMain();}
 function updateNumItem(key,val){const g=data.number.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 function updateDateItem(key,val){const g=data.date.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 
