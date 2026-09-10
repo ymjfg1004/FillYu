@@ -83,6 +83,10 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
 .hint{font-size:11px;color:#bbb;margin-top:3px}
 .num-editor{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .num-editor .full{grid-column:1/-1}
+.num-tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
+.num-tab{padding:9px 12px;border:none;background:none;font-size:12px;color:#999;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit}
+.num-tab:hover{color:#18a0fb}
+.num-tab.on{color:#18a0fb;font-weight:600;border-bottom-color:#18a0fb}
 .date-editor{display:flex;flex-direction:column;gap:10px}
 .add-field-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed #d0d0d0;border-radius:8px;color:#aaa;font-size:13px;cursor:pointer;transition:all .15s;background:none;width:100%}
 .add-field-btn:hover{border-color:#18a0fb;color:#18a0fb;background:#f5fbff}
@@ -583,6 +587,7 @@ let data = null;
 let fileSha = '';
 let selection = null;
 let dirty = false;
+let numTabState = {};
 let _saving = false;
 
 async function ghFetch(url, opts={}) {
@@ -673,10 +678,8 @@ function renderSidebar() {
 
   // ── 숫자 ──
   html+=`<div class="sb-section-hd" style="margin-top:4px">숫자</div>`;
-  data.number.forEach(g=>{
-    html+=`<div class="sb-g-label">${g.g}</div>`;
-    g.items.forEach((item,ii)=>{const on=selection&&selection.groupKey===g.key&&selection.itemIdx===ii?' on':'';html+=`<div class="sb-item${on}" onclick="selectNumItem('${g.key}',${ii})"><span class="sb-item-name">${item.lbl}</span></div>`;});
-  });
+  const numOn=selection&&selection.type==='number'?' on':'';
+  html+=`<div class="tree-subs"><div class="tree-sub${numOn}" onclick="selectNumber()"><span class="tree-sub-name">전체 보기 (${data.number.length}개 그룹)</span></div></div>`;
 
   // ── 날짜 ──
   html+=`<div class="sb-section-hd" style="margin-top:4px">날짜 및 시간</div>`;
@@ -690,7 +693,8 @@ function renderSidebar() {
 }
 
 function selectText(){selection={type:'text'};renderSidebar();renderMain();}
-function selectNumItem(gKey,idx){selection={type:'number',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
+function selectNumber(){selection={type:'number'};renderSidebar();renderMain();}
+function setNumTab(gKey,idx){numTabState[gKey]=idx;renderMain();}
 function selectDateItem(gKey,idx){selection={type:'date',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
 
 // ─── Main ──────────────────────────────────────────
@@ -728,10 +732,12 @@ function renderMain() {
       </div>`).join('');
     main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">텍스트</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div></div><div class="panel-body">${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}${fieldsHtml}</div></div>`;
   } else if(selection.type==='number'){
-    const g=data.number.find(x=>x.key===selection.groupKey);
-    const item=g&&g.items[selection.itemIdx];
-    if(!item) return;
-    main.innerHTML=`<div class="panel"><div class="panel-hd"><div class="panel-title">${g.g} — ${item.lbl}</div></div><div class="panel-body"><div class="num-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('fmt',this.value)"/></div><div><label class="lbl">최솟값</label><input class="inp" type="number" value="${item.min}" onchange="updateNumItem('min',parseFloat(this.value))"/></div><div><label class="lbl">최댓값</label><input class="inp" type="number" value="${item.max}" onchange="updateNumItem('max',parseFloat(this.value))"/></div><div><label class="lbl">소수점</label><input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('dec',parseInt(this.value))"/></div><div><label class="lbl">단위 (접미사)</label><input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('suffix',this.value)" placeholder="원, kg, %"/></div><div class="full"><label class="lbl">천 단위 콤마</label><select class="inp" onchange="updateNumItem('thousands',this.value==='true')"><option value="false"${!item.thousands?' selected':''}>없음</option><option value="true"${item.thousands?' selected':''}>있음 (1,000)</option></select></div></div></div></div>`;
+    main.innerHTML=data.number.map(g=>{
+      const activeIdx=numTabState[g.key]||0;
+      const item=g.items[activeIdx]||g.items[0];
+      const tabsHtml=g.items.map((it,i)=>`<button class="num-tab${i===activeIdx?' on':''}" onclick="setNumTab('${g.key}',${i})">${esc(it.lbl)}</button>`).join('');
+      return `<div class="panel"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div></div><div class="num-tabs">${tabsHtml}</div><div class="panel-body"><div class="num-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">최솟값</label><input class="inp" type="number" value="${item.min}" onchange="updateNumItem('${g.key}',${activeIdx},'min',parseFloat(this.value))"/></div><div><label class="lbl">최댓값</label><input class="inp" type="number" value="${item.max}" onchange="updateNumItem('${g.key}',${activeIdx},'max',parseFloat(this.value))"/></div><div><label class="lbl">소수점</label><input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('${g.key}',${activeIdx},'dec',parseInt(this.value))"/></div><div><label class="lbl">단위 (접미사)</label><input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('${g.key}',${activeIdx},'suffix',this.value)" placeholder="원, kg, %"/></div><div class="full"><label class="lbl">천 단위 콤마</label><select class="inp" onchange="updateNumItem('${g.key}',${activeIdx},'thousands',this.value==='true')"><option value="false"${!item.thousands?' selected':''}>없음</option><option value="true"${item.thousands?' selected':''}>있음 (1,000)</option></select></div></div></div></div>`;
+    }).join('');
   } else if(selection.type==='date'){
     const g=data.date.find(x=>x.key===selection.groupKey);
     const item=g&&g.items[selection.itemIdx];
@@ -753,7 +759,7 @@ function addField(){
   setTimeout(()=>{const m=document.getElementById('main');if(m)m.scrollTop=m.scrollHeight;},50);
 }
 
-function updateNumItem(key,val){const g=data.number.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
+function updateNumItem(gKey,idx,key,val){const g=data.number.find(x=>x.key===gKey);if(!g||!g.items[idx])return;g.items[idx][key]=val;markDirty();}
 function updateDateItem(key,val){const g=data.date.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 
 function canEdit(){return session && session.role !== 'viewer';}
