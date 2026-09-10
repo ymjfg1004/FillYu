@@ -73,11 +73,15 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
 .hint{font-size:11px;color:#bbb;margin-top:3px}
 .num-editor{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .num-editor .full{grid-column:1/-1}
-.item-tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
-.item-tab{padding:9px 12px;border:none;background:none;font-size:12px;color:#999;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit}
+.item-tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;align-items:center}
+.item-tab-wrap{display:flex;align-items:center;border-bottom:2px solid transparent}
+.item-tab-wrap.on{border-bottom-color:#18a0fb}
+.item-tab{padding:9px 2px 9px 12px;border:none;background:none;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit}
 .item-tab:hover{color:#18a0fb}
-.item-tab.on{color:#18a0fb;font-weight:600;border-bottom-color:#18a0fb}
-.item-tab-add{color:#18a0fb;font-weight:700;font-size:14px}
+.item-tab-wrap.on .item-tab{color:#18a0fb;font-weight:600}
+.item-tab-del{padding:2px 8px 2px 2px;border:none;background:none;color:#ccc;cursor:pointer;font-size:13px;line-height:1}
+.item-tab-del:hover{color:#e53935}
+.item-tab-add{padding:9px 12px;border:none;background:none;cursor:pointer;color:#18a0fb;font-weight:700;font-size:14px;font-family:inherit}
 .date-editor{display:flex;flex-direction:column;gap:10px}
 .add-field-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed #d0d0d0;border-radius:8px;color:#aaa;font-size:13px;cursor:pointer;transition:all .15s;background:none;width:100%}
 .add-field-btn:hover{border-color:#18a0fb;color:#18a0fb;background:#f5fbff}
@@ -715,15 +719,15 @@ function renderMain() {
     main.innerHTML=data.number.map(g=>{
       const activeIdx=numTabState[g.key]||0;
       const item=g.items[activeIdx]||g.items[0];
-      const tabsHtml=g.items.map((it,i)=>`<button class="item-tab${i===activeIdx?' on':''}" onclick="setNumTab('${g.key}',${i})">${esc(it.lbl)}</button>`).join('')+`<button class="item-tab item-tab-add" onclick="addNumItem('${g.key}')" title="항목 추가">+</button>`;
-      return `<div class="panel" id="numpanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div><button class="btn sm danger" onclick="delNumItem('${g.key}')">삭제</button></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="num-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">최솟값</label><input class="inp" type="number" value="${item.min}" onchange="updateNumItem('${g.key}',${activeIdx},'min',parseFloat(this.value))"/></div><div><label class="lbl">최댓값</label><input class="inp" type="number" value="${item.max}" onchange="updateNumItem('${g.key}',${activeIdx},'max',parseFloat(this.value))"/></div><div><label class="lbl">소수점</label><input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('${g.key}',${activeIdx},'dec',parseInt(this.value))"/></div><div><label class="lbl">단위 (접미사)</label><input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('${g.key}',${activeIdx},'suffix',this.value)" placeholder="원, kg, %"/></div><div class="full"><label class="lbl">천 단위 콤마</label><select class="inp" onchange="updateNumItem('${g.key}',${activeIdx},'thousands',this.value==='true')"><option value="false"${!item.thousands?' selected':''}>없음</option><option value="true"${item.thousands?' selected':''}>있음 (1,000)</option></select></div></div></div></div>`;
+      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setNumTab('${g.key}',${i})">${esc(it.lbl)}</button><button class="item-tab-del" onclick="event.stopPropagation();delNumItem('${g.key}',${i})" title="삭제">×</button></span>`).join('')+`<button class="item-tab item-tab-add" onclick="addNumItem('${g.key}')" title="항목 추가">+</button>`;
+      return `<div class="panel" id="numpanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="num-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateNumItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateNumItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">최솟값</label><input class="inp" type="number" value="${item.min}" onchange="updateNumItem('${g.key}',${activeIdx},'min',parseFloat(this.value))"/></div><div><label class="lbl">최댓값</label><input class="inp" type="number" value="${item.max}" onchange="updateNumItem('${g.key}',${activeIdx},'max',parseFloat(this.value))"/></div><div><label class="lbl">소수점</label><input class="inp" type="number" value="${item.dec||0}" min="0" max="4" onchange="updateNumItem('${g.key}',${activeIdx},'dec',parseInt(this.value))"/></div><div><label class="lbl">단위 (접미사)</label><input class="inp" value="${esc(item.suffix||'')}" onchange="updateNumItem('${g.key}',${activeIdx},'suffix',this.value)" placeholder="원, kg, %"/></div><div class="full"><label class="lbl">천 단위 콤마</label><select class="inp" onchange="updateNumItem('${g.key}',${activeIdx},'thousands',this.value==='true')"><option value="false"${!item.thousands?' selected':''}>없음</option><option value="true"${item.thousands?' selected':''}>있음 (1,000)</option></select></div></div></div></div>`;
     }).join('');
   } else if(selection.type==='date'){
     main.innerHTML=data.date.map(g=>{
       const activeIdx=dateTabState[g.key]||0;
       const item=g.items[activeIdx]||g.items[0];
-      const tabsHtml=g.items.map((it,i)=>`<button class="item-tab${i===activeIdx?' on':''}" onclick="setDateTab('${g.key}',${i})">${esc(it.lbl)}</button>`).join('')+`<button class="item-tab item-tab-add" onclick="addDateItem('${g.key}')" title="항목 추가">+</button>`;
-      return `<div class="panel" id="datepanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div><button class="btn sm danger" onclick="delDateItem('${g.key}')">삭제</button></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="date-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateDateItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateDateItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">패턴</label><input class="inp" value="${esc(item.pattern)}" onchange="updateDateItem('${g.key}',${activeIdx},'pattern',this.value)"/><div class="hint">YYYY YY MM M DD D HH mm SS AP hh DAY_KO DAY_SHORT DAY_EN</div></div></div></div></div>`;
+      const tabsHtml=g.items.map((it,i)=>`<span class="item-tab-wrap${i===activeIdx?' on':''}"><button class="item-tab" onclick="setDateTab('${g.key}',${i})">${esc(it.lbl)}</button><button class="item-tab-del" onclick="event.stopPropagation();delDateItem('${g.key}',${i})" title="삭제">×</button></span>`).join('')+`<button class="item-tab item-tab-add" onclick="addDateItem('${g.key}')" title="항목 추가">+</button>`;
+      return `<div class="panel" id="datepanel_${g.key}"><div class="panel-hd"><div class="panel-title">${esc(g.g)}</div></div><div class="item-tabs">${tabsHtml}</div><div class="panel-body"><div class="date-editor"><div><label class="lbl">레이블</label><input class="inp" value="${esc(item.lbl)}" onchange="updateDateItem('${g.key}',${activeIdx},'lbl',this.value)"/></div><div><label class="lbl">미리보기</label><input class="inp" value="${esc(item.fmt)}" onchange="updateDateItem('${g.key}',${activeIdx},'fmt',this.value)"/></div><div><label class="lbl">패턴</label><input class="inp" value="${esc(item.pattern)}" onchange="updateDateItem('${g.key}',${activeIdx},'pattern',this.value)"/><div class="hint">YYYY YY MM M DD D HH mm SS AP hh DAY_KO DAY_SHORT DAY_EN</div></div></div></div></div>`;
     }).join('');
   }
 }
@@ -733,12 +737,12 @@ function updateField(fi,key,val){if(key==='v')data.text[fi].v=val.split('\n').ma
 function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;data.text.splice(fi,1);markDirty();renderMain();}
 
 function addField(){
-  data.text.push({id:'field_'+Date.now(),lbl:'',v:[]});
+  data.text.unshift({id:'field_'+Date.now(),lbl:'',v:[]});
   markDirty(); renderMain();
-  const fi=data.text.length-1;
-  const fb=document.getElementById('fb_'+fi);
+  const m=document.getElementById('main');
+  if(m)m.scrollTop=0;
+  const fb=document.getElementById('fb_0');
   if(fb){fb.classList.add('open');const inp=fb.querySelector('input');if(inp)setTimeout(()=>inp.focus(),50);}
-  setTimeout(()=>{const m=document.getElementById('main');if(m)m.scrollTop=m.scrollHeight;},50);
 }
 
 function updateNumItem(gKey,idx,key,val){const g=data.number.find(x=>x.key===gKey);if(!g||!g.items[idx])return;g.items[idx][key]=val;markDirty();}
@@ -769,24 +773,26 @@ function focusNewItem(panelId){
     if(inp){inp.focus();inp.select();}
   },50);
 }
-function delNumItem(gKey){
+function delNumItem(gKey,idx){
   const g=data.number.find(x=>x.key===gKey);
   if(!g)return;
   if(g.items.length<=1){toast('최소 1개 항목은 있어야 합니다.');return;}
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
-  const idx=numTabState[gKey]||0;
   g.items.splice(idx,1);
-  numTabState[gKey]=Math.max(0,idx-1);
+  let cur=numTabState[gKey]||0;
+  if(idx<cur)cur--;
+  numTabState[gKey]=Math.min(Math.max(0,cur),g.items.length-1);
   markDirty(); renderMain();
 }
-function delDateItem(gKey){
+function delDateItem(gKey,idx){
   const g=data.date.find(x=>x.key===gKey);
   if(!g)return;
   if(g.items.length<=1){toast('최소 1개 항목은 있어야 합니다.');return;}
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
-  const idx=dateTabState[gKey]||0;
   g.items.splice(idx,1);
-  dateTabState[gKey]=Math.max(0,idx-1);
+  let cur=dateTabState[gKey]||0;
+  if(idx<cur)cur--;
+  dateTabState[gKey]=Math.min(Math.max(0,cur),g.items.length-1);
   markDirty(); renderMain();
 }
 
