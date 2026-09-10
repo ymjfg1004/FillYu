@@ -46,9 +46,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tree-sub.on{background:#eef7ff;border-left-color:#18a0fb}
 .tree-sub-name{font-size:13px;color:#444;flex:1}
 .tree-sub.on .tree-sub-name{color:#18a0fb;font-weight:600}
-.tree-sub-del{opacity:0;font-size:14px;color:#ccc;cursor:pointer;border:none;background:none;line-height:1}
-.tree-sub:hover .tree-sub-del{opacity:1}
-.tree-sub-del:hover{color:#e53935}
 .sb-item{display:flex;align-items:center;padding:6px 10px;cursor:pointer;border-radius:5px;margin:0 4px;border-left:2px solid transparent;gap:4px}
 .sb-item:hover{background:#f5f8ff}
 .sb-item.on{background:#eef7ff;border-left-color:#18a0fb}
@@ -117,11 +114,6 @@ textarea.ta{resize:vertical;min-height:120px;max-height:260px;overflow-y:auto;li
 /* Toast */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
-
-/* Inline add */
-.inline-add{display:flex;gap:6px;padding:4px 8px;box-sizing:border-box;width:100%}
-.inline-add input{flex:1;min-width:0;padding:5px 8px;border:1px solid #e0e0e0;border-radius:5px;font-size:12px;outline:none}
-.inline-add input:focus{border-color:#18a0fb}
 </style>
 </head>
 <body>
@@ -676,14 +668,8 @@ function renderSidebar() {
 
   // ── 텍스트 ──
   html+=`<div class="sb-section-hd">텍스트</div>`;
-  html+=`<div class="tree-subs">`;
-  data.text.forEach(s=>{
-    const on=selection&&selection.subKey===s.key?' on':'';
-    const delBtn=canEdit()?`<button class="tree-sub-del" onclick="event.stopPropagation();delSub('${s.key}')">×</button>`:'';
-    html+=`<div class="tree-sub${on}" onclick="selectSub('${s.key}')"><span class="tree-sub-name">${esc(s.name)}</span>${delBtn}</div>`;
-  });
-  if(canEdit())html+=`<div class="inline-add"><input placeholder="카테고리 이름" onkeydown="if(event.key==='Enter')addSubInline(this.value,this)"/><button class="btn sm" onclick="addSubInline(this.previousElementSibling.value,this.previousElementSibling)">+</button></div>`;
-  html+=`</div>`;
+  const textOn=selection&&selection.type==='text'?' on':'';
+  html+=`<div class="tree-subs"><div class="tree-sub${textOn}" onclick="selectText()"><span class="tree-sub-name">전체 필드 (${data.text.length}개)</span></div></div>`;
 
   // ── 숫자 ──
   html+=`<div class="sb-section-hd" style="margin-top:4px">숫자</div>`;
@@ -703,7 +689,7 @@ function renderSidebar() {
   addBar.innerHTML='';
 }
 
-function selectSub(sKey){selection={type:'text',subKey:sKey};renderSidebar();renderMain();}
+function selectText(){selection={type:'text'};renderSidebar();renderMain();}
 function selectNumItem(gKey,idx){selection={type:'number',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
 function selectDateItem(gKey,idx){selection={type:'date',groupKey:gKey,itemIdx:idx};renderSidebar();renderMain();}
 
@@ -713,9 +699,7 @@ function renderMain() {
   const editable=canEdit();
   if(!data||!selection){main.innerHTML='<div class="main-empty">← 왼쪽에서 항목을 선택하세요</div>';return;}
   if(selection.type==='text'){
-    const sub=data.text.find(s=>s.key===selection.subKey);
-    if(!sub){main.innerHTML='<div class="main-empty">항목을 찾을 수 없습니다</div>';return;}
-    const fieldsHtml=sub.fields.map((f,fi)=>`
+    const fieldsHtml=data.text.map((f,fi)=>`
       <div class="field-row" id="field_${fi}">
         <div class="field-hd" onclick="toggleField(${fi})">
           <span class="field-tag">#</span><span class="field-lbl">${f.lbl||'(이름 없음)'}</span>
@@ -742,7 +726,7 @@ function renderMain() {
           `}
         </div>
       </div>`).join('');
-    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">${esc(sub.name)}</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div>${editable?`<button class="btn sm" onclick="renameSub()">이름 수정</button>`:''}</div><div class="panel-body">${fieldsHtml}${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}</div></div>`;
+    main.innerHTML=`<div class="panel"><div class="panel-hd"><div><div class="panel-title">텍스트</div><div class="panel-sub">${editable?'필드를 클릭하면 편집할 수 있습니다':'보기 전용 모드입니다'}</div></div></div><div class="panel-body">${editable?`<button class="add-field-btn" onclick="addField()">+ 필드 추가</button>`:''}${fieldsHtml}</div></div>`;
   } else if(selection.type==='number'){
     const g=data.number.find(x=>x.key===selection.groupKey);
     const item=g&&g.items[selection.itemIdx];
@@ -757,23 +741,18 @@ function renderMain() {
 }
 
 function toggleField(fi){const fb=document.getElementById('fb_'+fi);if(fb)fb.classList.toggle('open');}
-function updateField(fi,key,val){const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;if(key==='v')sub.fields[fi].v=val.split('\n').map(s=>s.trim()).filter(s=>s);else sub.fields[fi][key]=val;markDirty();renderSidebar();}
-function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;sub.fields.splice(fi,1);markDirty();renderMain();}
+function updateField(fi,key,val){if(key==='v')data.text[fi].v=val.split('\n').map(s=>s.trim()).filter(s=>s);else data.text[fi][key]=val;markDirty();renderSidebar();}
+function delField(fi){if(!confirm('이 필드를 삭제하시겠습니까?'))return;data.text.splice(fi,1);markDirty();renderMain();}
 
 function addField(){
-  const sub=data.text.find(s=>s.key===selection.subKey);
-  if(!sub)return;
-  sub.fields.push({id:'field_'+Date.now(),lbl:'',v:[]});
+  data.text.push({id:'field_'+Date.now(),lbl:'',v:[]});
   markDirty(); renderMain();
-  const fi=sub.fields.length-1;
+  const fi=data.text.length-1;
   const fb=document.getElementById('fb_'+fi);
   if(fb){fb.classList.add('open');const inp=fb.querySelector('input');if(inp)setTimeout(()=>inp.focus(),50);}
   setTimeout(()=>{const m=document.getElementById('main');if(m)m.scrollTop=m.scrollHeight;},50);
 }
 
-function renameSub(){const sub=data.text.find(s=>s.key===selection.subKey);if(!sub)return;const name=prompt('새 이름:',sub.name);if(!name)return;sub.name=name;markDirty();renderSidebar();renderMain();}
-function delSub(sKey){if(!confirm('이 카테고리를 삭제하시겠습니까?'))return;data.text=data.text.filter(s=>s.key!==sKey);if(selection&&selection.subKey===sKey)selection=null;markDirty();renderSidebar();renderMain();}
-function addSubInline(name,input){if(!name||!name.trim())return;const key='s_'+Date.now();data.text.push({name:name.trim(),key,fields:[]});input.value='';markDirty();selection={type:'text',subKey:key};renderSidebar();renderMain();}
 function updateNumItem(key,val){const g=data.number.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 function updateDateItem(key,val){const g=data.date.find(x=>x.key===selection.groupKey);if(!g)return;g.items[selection.itemIdx][key]=val;markDirty();}
 
