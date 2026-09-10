@@ -603,7 +603,7 @@ async function loadFromGitHub() {
     data=JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g,'')))));
     setStatus('연결됨 ✓','ok');
     document.getElementById('saveBtn').disabled=false;
-    selection=null; renderSidebar(); renderMain();
+    selection={type:'text'}; renderSidebar(); renderMain();
     toast('데이터를 불러왔습니다.');
   } catch(e) { setStatus('연결 실패','err'); toast('오류: '+e.message); }
 }
