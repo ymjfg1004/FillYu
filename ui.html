@@ -102,6 +102,10 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 .mode-btn.on{background:#18a0fb;border-color:#18a0fb;color:#fff;font-weight:600}
 .blank-btn{padding:4px 8px;border:1px solid #e0e0e0;border-radius:4px;background:#f0f0f0;font-size:11px;color:#666;cursor:pointer;margin-left:4px;border-style:dashed}
 .blank-btn.on{background:#fff7e6;border-color:#ffa940;color:#d46b08;font-weight:600;border-style:dashed}
+.map-btn{padding:4px 8px;border:none;border-radius:4px;background:#7c3aed;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:4px;white-space:nowrap;flex-shrink:0}
+.map-btn:hover{background:#6d28d9}
+.map-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid #eee;background:#faf7ff;flex-shrink:0}
+.map-bar-txt{flex:1;font-size:10px;color:#8b5cf6;line-height:1.3;min-width:0}
 /* Notice */
 .notice{padding:8px 10px;background:#fffbe6;border-bottom:1px solid #ffe58f;font-size:11px;color:#7d6608;line-height:1.5}
 </style>
@@ -116,6 +120,11 @@ body{font-family:'Inter',-apple-system,sans-serif;font-size:12px;color:#1a1a1a;b
 </div>
 
 <div class="content" id="content"></div>
+
+<div class="map-bar">
+  <div class="map-bar-txt">선택 영역 안에서 레이어 이름과 데이터 이름이 같으면 한 번에 채웁니다</div>
+  <button class="map-btn" onclick="applyMapping()">맵핑 적용</button>
+</div>
 
 <div class="bot">
   <div class="bot-cnt" id="botCnt"><span>0</span>개 텍스트 레이어 선택됨</div>
@@ -273,6 +282,29 @@ function applyEncoded(encoded){
   applyItems(items);
 }
 
+// ─── Layer-name Mapping ─────────────────────────────────────
+function buildMappingRegistry(){
+  const registry={};
+  TEXT.forEach(f=>{ if(f.lbl) registry[f.lbl]=f.v; });
+  sharedEntries.forEach(e=>{ if(e.label) registry[e.label]=e.values||[]; });
+  NUM.forEach(g=>{
+    if(g.isCustom||!g.items) return;
+    g.items.forEach(item=>{
+      registry[item.lbl]=gen100(()=>{const s=String(item.gen());return showWon?s:s.replace(/원$/,'');});
+    });
+  });
+  DATE.forEach(g=>{
+    if(!g.items) return;
+    g.items.forEach(item=>{ registry[item.lbl]=gen100(item.gen); });
+  });
+  customLists.forEach(l=>{ if(l.name) registry[l.name]=l.items; });
+  return registry;
+}
+function applyMapping(){
+  const registry=buildMappingRegistry();
+  parent.postMessage({pluginMessage:{type:'apply-mapping',registry}},'*');
+}
+
 function setMode(m){
   mode=m;
   document.getElementById('mAsc').classList.toggle('on',m==='asc');
@@ -410,16 +442,24 @@ function renderNumber(){
       <button class="num-apply" onclick="applyCustomNum()">적용</button>
     </div>`;
 
+  rhtml+=`<div class="srch"><div class="srch-wrap"><span class="srch-ico">🔍</span><input type="text" placeholder="숫자 데이터 검색..." value="${searchQ}" oninput="onSearch(this.value)" id="srchInput"/></div></div>`;
+
+  let found=false;
   NUM.forEach(g=>{
     if(g.isCustom||!g.items) return;
     const isPrice=g.key==='price';
     const wonToggle=isPrice?`<label class="num-check"><input type="checkbox" ${showWon?'checked':''} onchange="showWon=this.checked;render()"/> '원' 표시</label>`:'';
+    const filteredItems=searchQ?g.items.filter(item=>item.lbl.includes(searchQ)||g.g.includes(searchQ)):g.items;
+    if(filteredItems.length===0) return;
+    found=true;
     rhtml+=`<div class="grp-hd"><span>${g.g}</span>${wonToggle}</div>`;
-    g.items.forEach((item,i)=>{
+    filteredItems.forEach((item)=>{
+      const i=g.items.indexOf(item);
       const g0=()=>{const s=String(item.gen());return showWon?s:s.replace(/원$/,'');};
       rhtml+=`<div class="fi" onclick="applyNumItem('${g.key}',${i})"><span class="fi-tag">#</span><span class="fi-lbl">${item.lbl}</span><span class="fi-pre">${g0()}, ${g0()}</span></div>`;
     });
   });
+  if(searchQ && !found) rhtml+=`<div class="ct-empty">검색 결과가 없습니다.</div>`;
 
   return `<div class="rp rp-full">${rhtml}</div>`;
 }
@@ -451,14 +491,20 @@ function applyCustomNum(){
 // ─── Date Tab ─────────────────────────────────────────────
 function renderDate(){
   // Flat list — no left folder nav. Groups divided by titles only.
-  let rhtml='';
+  let rhtml=`<div class="srch"><div class="srch-wrap"><span class="srch-ico">🔍</span><input type="text" placeholder="날짜·시간 데이터 검색..." value="${searchQ}" oninput="onSearch(this.value)" id="srchInput"/></div></div>`;
+  let found=false;
   DATE.forEach(g=>{
     if(!g.items) return;
+    const filteredItems=searchQ?g.items.filter(item=>item.lbl.includes(searchQ)||g.g.includes(searchQ)):g.items;
+    if(filteredItems.length===0) return;
+    found=true;
     rhtml+=`<div class="grp-hd"><span>${g.g}</span></div>`;
-    g.items.forEach((item,i)=>{
+    filteredItems.forEach((item)=>{
+      const i=g.items.indexOf(item);
       rhtml+=`<div class="fi" onclick="applyDateItem('${g.key}',${i})"><span class="fi-tag">#</span><span class="fi-lbl">${item.lbl}</span><span class="fi-pre">${item.gen()}</span></div>`;
     });
   });
+  if(searchQ && !found) rhtml+=`<div class="ct-empty">검색 결과가 없습니다.</div>`;
   return `<div class="rp rp-full">${rhtml}</div>`;
 }
 
@@ -495,6 +541,7 @@ function renderCustom(){
       <button class="ct-btn" onclick="exportAll()">📤 내보내기</button>
       <button class="ct-btn danger" onclick="clearAll()">🗑 전체 삭제</button>
     </div>
+    <div class="af-hint" style="padding:4px 10px 8px">CSV 1열은 파일명으로 저장, 2열 이상은 첫 줄(헤더)을 컬럼명으로 컬럼별 목록 생성</div>
     <div class="srch" style="border-bottom:1px solid #f0f0f0">
       <div class="srch-wrap"><span class="srch-ico">🔍</span><input type="text" placeholder="목록 검색..." value="${searchQ}" oninput="onSearch(this.value)"/></div>
     </div>
@@ -515,10 +562,14 @@ function saveCustom(){
   const items=raw.split('\n').map(s=>s.trim()).filter(s=>s);
   if(!name){alert('목록 이름을 입력하세요.');return;}
   if(!items.length){alert('텍스트를 입력하세요.');return;}
+  upsertCustomList(name,items);
+  persist();render();
+}
+
+function upsertCustomList(name,items){
   const idx=customLists.findIndex(l=>l.name===name);
   if(idx>=0) customLists[idx]={name,items};
   else customLists.push({name,items});
-  persist();render();
 }
 
 function delList(i){
@@ -538,17 +589,55 @@ function exportAll(){
   a.download='custom_data.txt';a.click();
 }
 
+function parseCSVLine(line){
+  const result=[];let cur='';let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQuotes){
+      if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else inQuotes=false; }
+      else cur+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===','){result.push(cur);cur='';}
+      else cur+=c;
+    }
+  }
+  result.push(cur);
+  return result.map(s=>s.trim());
+}
+function parseCSV(text){
+  return text.split(/\r\n|\n|\r/).filter(l=>l.trim()!=='').map(parseCSVLine);
+}
+
 function importCSV(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    const lines=e.target.result.split('\n').map(s=>s.split(',')[0].trim()).filter(s=>s&&s!=='\r');
-    const name=file.name.replace(/\.[^.]+$/,'').slice(0,20)||'가져온 목록';
-    const idx=customLists.findIndex(l=>l.name===name);
-    if(idx>=0) customLists[idx]={name,items:lines};
-    else customLists.push({name,items:lines});
-    persist();render();
-    alert(`"${name}" 목록으로 ${lines.length}개 항목을 가져왔습니다.`);
+    const rows=parseCSV(e.target.result);
+    if(rows.length===0){alert('빈 파일입니다.');input.value='';return;}
+    const header=rows[0];
+    if(header.length<=1){
+      // 단일 컬럼: 기존 방식대로 파일명을 목록 이름으로 사용
+      const name=file.name.replace(/\.[^.]+$/,'').slice(0,20)||'가져온 목록';
+      const items=rows.map(r=>r[0]).filter(Boolean);
+      upsertCustomList(name,items);
+      persist();render();
+      alert(`"${name}" 목록으로 ${items.length}개 항목을 가져왔습니다.`);
+    } else {
+      // 다중 컬럼: 첫 줄을 헤더(컬럼명)로 사용, 컬럼별로 별도 목록 생성
+      const dataRows=rows.slice(1);
+      let importedCols=0;
+      header.forEach((colName,colIdx)=>{
+        const name=(colName||`컬럼${colIdx+1}`).trim().slice(0,20);
+        if(!name) return;
+        const items=dataRows.map(r=>(r[colIdx]||'').trim()).filter(Boolean);
+        if(items.length===0) return;
+        upsertCustomList(name,items);
+        importedCols++;
+      });
+      persist();render();
+      alert(`${importedCols}개 컬럼을 각각의 목록으로 가져왔습니다.\n(목록 이름 = 컬럼명 → 레이어 이름을 동일하게 지으면 맵핑 적용 가능)`);
+    }
   };
   reader.readAsText(file,'UTF-8');
   input.value='';

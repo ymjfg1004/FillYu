@@ -42,5 +42,37 @@ figma.ui.onmessage = async (msg) => {
       figma.notify(`${textLayers.length}개 레이어에 적용했습니다.`);
       break;
     }
+    case 'apply-mapping': {
+      const registry: Record<string, string[]> = msg.registry || {};
+      const selection = figma.currentPage.selection;
+      if (selection.length === 0) { figma.notify('레이어를 선택해주세요.'); return; }
+
+      const textNodes: TextNode[] = [];
+      const collect = (node: SceneNode) => {
+        if (node.type === 'TEXT') textNodes.push(node);
+        else if ('children' in node) node.children.forEach(collect);
+      };
+      selection.forEach(collect);
+
+      const normalizeKey = (name: string) => name.replace(/^#/, '').trim();
+
+      let appliedCount = 0;
+      let unmatchedCount = 0;
+      for (const node of textNodes) {
+        const values = registry[normalizeKey(node.name)];
+        if (!values || values.length === 0) { unmatchedCount++; continue; }
+        const fonts = node.getRangeAllFontNames(0, node.characters.length);
+        for (const font of fonts) await figma.loadFontAsync(font);
+        node.characters = String(values[Math.floor(Math.random() * values.length)]);
+        appliedCount++;
+      }
+
+      if (appliedCount === 0) {
+        figma.notify('일치하는 레이어가 없습니다. 레이어 이름을 데이터 이름과 동일하게 설정해주세요.');
+      } else {
+        figma.notify(`${appliedCount}개 레이어에 적용됨${unmatchedCount > 0 ? `, ${unmatchedCount}개는 일치하는 데이터 없음` : ''}`);
+      }
+      break;
+    }
   }
 };
